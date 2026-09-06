@@ -12,8 +12,8 @@
                 "changelog": "1.3.1.0: Rinominato da CategoriesBrowser/OwlPlugin a Owlfin (namespace, assembly, nome plugin, endpoint API e marcatori script). Nessun cambio funzionale. 1.2.1.0: Corretto un bug per cui la barra dei generi poteva comparire due volte (race condition introdotta dal fix di navigazione della versione precedente). Aggiunto fallback per titolo nella ricerca Sonarr, per le serie senza TVDB id (es. uscite recenti). 1.2.0.0: Aggiunto l'indicatore \"prossimo episodio\" per serie/stagioni, tramite un proxy server-side verso Sonarr (nuovo controller, chiave API mai esposta al client), attivabile separatamente dalle altre due funzioni. 1.1.1.0: Corretto un bug per cui la barra dei generi spariva navigando via da Home e tornando indietro (ora si reinietta ad ogni cambio vista, come studio.js). 1.1.0.0: Aggiunte le righe per studio/piattaforma (studio.js), attivabile separatamente dalla barra dei generi. 1.0.0.0: Prima versione, barra dei generi con griglia poster, iniettata tramite il plugin File Transformation (nessuna scrittura su disco).\n",
                 "targetAbi": "10.11.0.0",
                 "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.3.1.0.zip",
-                "checksum": "d2572633812ebfa328befd2079f66634",
-                "timestamp": "2026-09-06T12:55:02Z"
+                "checksum": "9cde6f888146aeed75445aec0c5e3ec0",
+                "timestamp": "2026-09-06T12:55:34Z"
             },
             {
                 "version": "1.3.0.0",

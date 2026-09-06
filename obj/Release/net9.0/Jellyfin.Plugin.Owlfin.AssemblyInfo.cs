@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Jellyfin.Plugin.Owlfin")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.3.1.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.3.1.0+c551a77a5660b5b51ba6bb3b08d14856f3bdd5b9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.3.1.0+9f8644a304dc2b5d9d9e873fcf785fcd805a6725")]
 [assembly: System.Reflection.AssemblyProductAttribute("Jellyfin.Plugin.Owlfin")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Jellyfin.Plugin.Owlfin")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.3.1.0")]
