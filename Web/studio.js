@@ -435,9 +435,11 @@ currentPlatformOpen=null;
 }
 
 function genreBarPending(){
-// categories.js aggiunge questo <style> in modo sincrono, ben prima che
-// #categories-wrapper compaia (arriva dopo una fetch async dei generi)
-return !!document.getElementById("categories-css") && !document.getElementById("categories-wrapper");
+// data-owlfin-categories viene scritto da categories.js come primissima
+// istruzione, in modo sincrono -- a differenza di #categories-css non
+// dipende da host/credenziali già pronti, quindi niente più race al
+// primo avvio.
+return document.documentElement.hasAttribute("data-owlfin-categories") && !document.getElementById("categories-wrapper");
 }
 
 function getAnchor(){

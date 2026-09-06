@@ -1,6 +1,12 @@
 (function () {
     "use strict";
 
+    // Marker sincrono: esiste appena questo script viene eseguito, ancor
+    // prima che host/credenziali siano pronti. Serve a studio.js per capire
+    // se deve aspettare la barra dei generi invece di infilarsi subito
+    // dopo "I miei media".
+    document.documentElement.setAttribute("data-owlfin-categories", "1");
+
     let currentActive = null;
     let navGeneration = 0;
 

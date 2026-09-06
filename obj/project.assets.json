@@ -1646,7 +1646,7 @@
     "/home/sava/.nuget/packages/": {}
   },
   "project": {
-    "version": "1.3.2",
+    "version": "1.3.3",
     "restore": {
       "projectUniqueName": "/home/sava/jellyplugin/Owlfin/Jellyfin.Plugin.Owlfin.csproj",
       "projectName": "Jellyfin.Plugin.Owlfin",
