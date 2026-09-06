@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Owlfin</title>
+</head>
+<body>
+    <div id="OwlfinConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="OwlfinConfigForm">
+                    <div class="verticalSection">
+                        <h2>Owlfin</h2>
+                        <p>
+                            Tre personalizzazioni indipendenti per il client web. Ognuna si può
+                            attivare/disattivare separatamente.
+                        </p>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input id="CategoriesEnabled" name="CategoriesEnabled" type="checkbox" is="emby-checkbox" />
+                            <span>Barra dei generi (Categories)</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Barra orizzontale di generi filtrabile al tocco, con griglia poster
+                            dei film corrispondenti.
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input id="StudiosEnabled" name="StudiosEnabled" type="checkbox" is="emby-checkbox" />
+                            <span>Righe per studio/piattaforma (Studio)</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Righe espandibili per Apple TV+, Prime Video, Hulu, Netflix, HBO Max,
+                            Disney+, Pixar e Adult Swim.
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input id="SonarrEnabled" name="SonarrEnabled" type="checkbox" is="emby-checkbox" />
+                            <span>Prossimo episodio (Sonarr)</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Mostra "Prossimo episodio il ..." sulla pagina di dettaglio di serie
+                            e stagioni, leggendo la data dalla tua istanza Sonarr. La chiave API
+                            resta sul server, non viene mai inviata al browser.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SonarrUrl">URL Sonarr</label>
+                        <input id="SonarrUrl" name="SonarrUrl" type="text" is="emby-input" placeholder="http://localhost:8989" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SonarrApiKey">API key Sonarr</label>
+                        <input id="SonarrApiKey" name="SonarrApiKey" type="password" is="emby-input" />
+                    </div>
+
+                    <div class="fieldDescription">
+                        Riavvia Jellyfin dopo aver cambiato una qualsiasi di queste opzioni.
+                        Categories/Studio/Sonarr richiedono il plugin File Transformation
+                        installato -- è lui che inietta davvero gli script in index.html.
+                    </div>
+                    <br />
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block">
+                            <span>Salva</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var OwlfinConfig = {
+                pluginUniqueId: 'b13839a6-5916-4f75-aed9-331901b8e3e6'
+            };
+
+            document.querySelector('#OwlfinConfigPage')
+                .addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(OwlfinConfig.pluginUniqueId).then(function (config) {
+                        document.querySelector('#CategoriesEnabled').checked = config.CategoriesEnabled;
+                        document.querySelector('#StudiosEnabled').checked = config.StudiosEnabled;
+                        document.querySelector('#SonarrEnabled').checked = config.SonarrEnabled;
+                        document.querySelector('#SonarrUrl').value = config.SonarrUrl || '';
+                        document.querySelector('#SonarrApiKey').value = config.SonarrApiKey || '';
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+
+            document.querySelector('#OwlfinConfigForm')
+                .addEventListener('submit', function (e) {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(OwlfinConfig.pluginUniqueId).then(function (config) {
+                        config.CategoriesEnabled = document.querySelector('#CategoriesEnabled').checked;
+                        config.StudiosEnabled = document.querySelector('#StudiosEnabled').checked;
+                        config.SonarrEnabled = document.querySelector('#SonarrEnabled').checked;
+                        config.SonarrUrl = document.querySelector('#SonarrUrl').value;
+                        config.SonarrApiKey = document.querySelector('#SonarrApiKey').value;
+                        ApiClient.updatePluginConfiguration(OwlfinConfig.pluginUniqueId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    });
+                    e.preventDefault();
+                    return false;
+                });
+        </script>
+    </div>
+</body>
+</html>
