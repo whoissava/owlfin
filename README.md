@@ -31,12 +31,16 @@ Dashboard → Plugins → Owlfin: tre checkbox indipendenti (una per
 funzione) più URL e API key di Sonarr. Riavvia Jellyfin dopo aver
 cambiato qualsiasi opzione.
 
-## Aggiornamenti
+## Aggiornamenti e info
 
 Le nuove versioni compaiono automaticamente in Dashboard → Plugins una
 volta pubblicate nel manifest — nessuna azione manuale richiesta.
 
 
 
+
+
+
+CREDITI
 
 2 funzioni su 3 provengono dalle repo di  https://github.com/Snook-sudo, senza la sua repo non sarebbe stato possibile integrare queste sue funzioni.
