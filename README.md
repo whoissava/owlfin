@@ -36,3 +36,8 @@ cambiato qualsiasi opzione.
 
 Le nuove versioni compaiono automaticamente in Dashboard → Plugins una
 volta pubblicate nel manifest — nessuna azione manuale richiesta.
+
+
+
+
+2 funzioni su 3 provengono dalle repo di  https://github.com/Snook-sudo, senza la sua repo non sarebbe stato possibile integrare queste sue funzioni.
