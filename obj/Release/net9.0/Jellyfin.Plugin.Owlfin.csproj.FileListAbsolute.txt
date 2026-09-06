@@ -1,0 +1,14 @@
+/home/sava/jellyplugin/Owlfin/bin/Release/net9.0/Jellyfin.Plugin.Owlfin.deps.json
+/home/sava/jellyplugin/Owlfin/bin/Release/net9.0/Jellyfin.Plugin.Owlfin.dll
+/home/sava/jellyplugin/Owlfin/bin/Release/net9.0/Jellyfin.Plugin.Owlfin.pdb
+/home/sava/jellyplugin/Owlfin/bin/Release/net9.0/Jellyfin.Plugin.Owlfin.xml
+/home/sava/jellyplugin/Owlfin/obj/Release/net9.0/Jellyfin.Plugin.Owlfin.csproj.AssemblyReference.cache
+/home/sava/jellyplugin/Owlfin/obj/Release/net9.0/Jellyfin.Plugin.Owlfin.GeneratedMSBuildEditorConfig.editorconfig
+/home/sava/jellyplugin/Owlfin/obj/Release/net9.0/Jellyfin.Plugin.Owlfin.AssemblyInfoInputs.cache
+/home/sava/jellyplugin/Owlfin/obj/Release/net9.0/Jellyfin.Plugin.Owlfin.AssemblyInfo.cs
+/home/sava/jellyplugin/Owlfin/obj/Release/net9.0/Jellyfin.Plugin.Owlfin.csproj.CoreCompileInputs.cache
+/home/sava/jellyplugin/Owlfin/obj/Release/net9.0/Jellyfin.Plugin.Owlfin.dll
+/home/sava/jellyplugin/Owlfin/obj/Release/net9.0/refint/Jellyfin.Plugin.Owlfin.dll
+/home/sava/jellyplugin/Owlfin/obj/Release/net9.0/Jellyfin.Plugin.Owlfin.xml
+/home/sava/jellyplugin/Owlfin/obj/Release/net9.0/Jellyfin.Plugin.Owlfin.pdb
+/home/sava/jellyplugin/Owlfin/obj/Release/net9.0/ref/Jellyfin.Plugin.Owlfin.dll

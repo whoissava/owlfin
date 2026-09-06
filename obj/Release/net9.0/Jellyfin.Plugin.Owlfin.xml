@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Jellyfin.Plugin.Owlfin</name>
+    </assembly>
+    <members>
+        <member name="T:Jellyfin.Plugin.Owlfin.Api.SonarrController">
+            <summary>
+            Proxies a single read-only question to Sonarr -- "when does this series next air?" --
+            so <c>Web/nextepisode.js</c> never needs the Sonarr URL or API key itself. The key
+            lives only in <see cref="T:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration"/>, read and used here,
+            server-side.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.SonarrController.GetNextEpisode(System.Int32,System.String)">
+            <summary>
+            Returns the next-airing date (if any) for the Sonarr series matching the given
+            TVDB id, or 404 if not configured/not found. If <paramref name="tvdbId"/> is 0
+            (Jellyfin has no TVDB id for this item -- common for very new releases), falls
+            back to a case-insensitive title match via <paramref name="title"/>.
+            </summary>
+            <param name="tvdbId">The TheTVDB id of the series (matches Jellyfin's own ProviderIds.Tvdb), or 0 if unknown.</param>
+            <param name="title">Fallback series title, used only when <paramref name="tvdbId"/> is 0.</param>
+            <returns>A JSON object <c>{ "nextAiring": "..." }</c> (or null).</returns>
+        </member>
+        <member name="T:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration">
+            <summary>
+            Plugin configuration.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration"/> class.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.CategoriesEnabled">
+            <summary>
+            Gets or sets a value indicating whether the genre filter bar
+            (categories.js) is injected into the web client. Restart Jellyfin
+            after changing this.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.StudiosEnabled">
+            <summary>
+            Gets or sets a value indicating whether the studio/platform rows
+            (studio.js) are injected into the web client. Restart Jellyfin
+            after changing this.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.SonarrEnabled">
+            <summary>
+            Gets or sets a value indicating whether the "next episode airs on"
+            indicator (nextepisode.js, backed by Sonarr) is injected into the
+            web client. Restart Jellyfin after changing this.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.SonarrUrl">
+            <summary>
+            Gets or sets the base URL of the user's Sonarr instance, e.g.
+            http://localhost:8989. Called server-side only -- never sent to the
+            browser.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.SonarrApiKey">
+            <summary>
+            Gets or sets the Sonarr API key. Used only in server-side requests
+            from <see cref="T:Jellyfin.Plugin.Owlfin.Api.SonarrController"/> -- never sent to the browser.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Owlfin.Helpers.TransformationPatches">
+            <summary>
+            Callback methods invoked by the File Transformation plugin to patch served files.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Helpers.TransformationPatches.IndexHtml(Jellyfin.Plugin.Owlfin.Model.PatchRequestPayload)">
+            <summary>
+            Inserts each enabled script (categories.js and/or studio.js), inlined
+            verbatim, just before &lt;/body&gt;. Each is independently toggled via
+            <see cref="T:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration"/>.
+            </summary>
+            <param name="payload">The current contents of index.html.</param>
+            <returns>The patched contents.</returns>
+        </member>
+        <member name="T:Jellyfin.Plugin.Owlfin.Model.PatchRequestPayload">
+            <summary>
+            The object the File Transformation plugin passes to a registered callback,
+            containing the current contents of the file being served.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Model.PatchRequestPayload.Contents">
+            <summary>
+            Gets or sets the current contents of the file being requested.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Owlfin.Plugin">
+            <summary>
+            Adds a horizontal, tap-to-filter genre bar to the Jellyfin web client's home
+            screen. The actual index.html patch is registered with the (separately
+            installed) File Transformation plugin at startup -- see
+            <see cref="T:Jellyfin.Plugin.Owlfin.Services.StartupTask"/> and <see cref="T:Jellyfin.Plugin.Owlfin.Helpers.TransformationPatches"/>.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Plugin.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,MediaBrowser.Model.Serialization.IXmlSerializer)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Owlfin.Plugin"/> class.
+            </summary>
+            <param name="applicationPaths">Instance of the <see cref="T:MediaBrowser.Common.Configuration.IApplicationPaths"/> interface.</param>
+            <param name="xmlSerializer">Instance of the <see cref="T:MediaBrowser.Model.Serialization.IXmlSerializer"/> interface.</param>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Plugin.Instance">
+            <summary>
+            Gets the current plugin instance.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Plugin.Name">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Plugin.Id">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Plugin.Description">
+            <inheritdoc />
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Plugin.GetPages">
+            <inheritdoc />
+        </member>
+        <member name="T:Jellyfin.Plugin.Owlfin.Services.StartupTask">
+            <summary>
+            Runs once at server startup. Finds the (separately installed) File Transformation
+            plugin among the loaded assemblies and, via reflection, registers our index.html
+            patch with it -- this is the documented way to depend on that plugin, since
+            Jellyfin loads each plugin into its own assembly load context so a normal project
+            reference isn't possible. See:
+            https://github.com/IAmParadox27/jellyfin-plugin-file-transformation.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Services.StartupTask.#ctor(Microsoft.Extensions.Logging.ILogger{Jellyfin.Plugin.Owlfin.Services.StartupTask})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Owlfin.Services.StartupTask"/> class.
+            </summary>
+            <param name="logger">Instance of the <see cref="T:Microsoft.Extensions.Logging.ILogger`1"/> interface.</param>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Services.StartupTask.Name">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Services.StartupTask.Key">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Services.StartupTask.Description">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Services.StartupTask.Category">
+            <inheritdoc />
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Services.StartupTask.ExecuteAsync(System.IProgress{System.Double},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Services.StartupTask.GetDefaultTriggers">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>
