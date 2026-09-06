@@ -434,8 +434,15 @@ if(old) old.remove();
 currentPlatformOpen=null;
 }
 
+function genreBarPending(){
+// categories.js aggiunge questo <style> in modo sincrono, ben prima che
+// #categories-wrapper compaia (arriva dopo una fetch async dei generi)
+return !!document.getElementById("categories-css") && !document.getElementById("categories-wrapper");
+}
+
 function getAnchor(){
-return document.querySelector("iframe.spotlightiframe")
+return document.getElementById("categories-wrapper")
+    || document.querySelector("iframe.spotlightiframe")
     || document.querySelector(".spotlightiframe")
     || document.querySelector(".section0");
 }
@@ -443,6 +450,14 @@ return document.querySelector("iframe.spotlightiframe")
 function tryInject(retriesLeft){
 if(isBlockedRoute()) return;
 if(document.getElementById("custom-rows-wrapper")) return;
+
+// Se la barra dei generi sta per comparire, aspettiamola invece di
+// agganciarci subito a .section0 (altrimenti "I miei media" finisce
+// incastrato fra le due righe).
+if(genreBarPending() && retriesLeft>0){
+    setTimeout(()=>tryInject(retriesLeft-1),250);
+    return;
+}
 
 const anchor=getAnchor();
 
