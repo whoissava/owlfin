@@ -300,7 +300,14 @@
             document.querySelector(".homeSectionsContainer") ||
             document.querySelector(".homeSection");
 
-        if (!host) {
+        const creds = getCreds();
+
+        // Al primissimo avvio l'host può già esistere ma le credenziali
+        // potrebbero non essere ancora scritte in localStorage (login/
+        // handshake iniziale ancora in corso): continuiamo a ritentare
+        // invece di arrenderci silenziosamente (altrimenti serve un
+        // reload manuale della pagina perché funzioni).
+        if (!host || !creds) {
             if (retriesLeft > 0) setTimeout(() => tryInject(retriesLeft - 1, myGeneration), 250);
             return;
         }
@@ -312,7 +319,7 @@
         navGeneration++;
         const myGeneration = navGeneration;
         removeUI();
-        tryInject(20, myGeneration); // fino a ~5s di retry (20 x 250ms)
+        tryInject(40, myGeneration); // fino a ~10s di retry (40 x 250ms)
     }
 
     document.addEventListener("viewshow", onNavigate);
