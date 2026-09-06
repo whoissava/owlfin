@@ -5,8 +5,7 @@ client web Jellyfin, ognuna attivabile/disattivabile separatamente:
 
 - **Barra dei generi** — barra orizzontale filtrabile, con griglia poster
   dei film per genere, ordinati per data di uscita.
-- **Righe per studio/piattaforma** — righe espandibili per Apple TV+,
-  Prime Video, Hulu, Netflix, HBO Max, Disney+, Pixar e Adult Swim.
+- **Righe per studio/piattaforma** — righe espandibili per diversi studi
 - **Prossimo episodio** — su una pagina di dettaglio serie/stagione,
   mostra "Prossimo episodio il ..." leggendo la data dalla tua istanza
   Sonarr (chiave API mai esposta al browser).
