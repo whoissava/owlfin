@@ -32,21 +32,21 @@
         }
     }
 
-    async function fetchNextAiring(base, token, tvdbId, title) {
+    async function fetchUpcomingEpisodes(base, token, tvdbId, title) {
         try {
             const params = title ? `?title=${encodeURIComponent(title)}` : "";
-            const r = await fetch(`${base}/Owlfin/Sonarr/NextEpisode/${tvdbId || 0}${params}`, {
+            const r = await fetch(`${base}/Owlfin/Sonarr/Episodes/${tvdbId || 0}${params}`, {
                 headers: { Authorization: `MediaBrowser Token="${token}"` }
             });
             if (!r.ok) {
-                console.debug(`[Owlfin] Sonarr NextEpisode: HTTP ${r.status} per tvdbId=${tvdbId} title="${title}"`);
-                return null;
+                console.debug(`[Owlfin] Sonarr Episodes: HTTP ${r.status} per tvdbId=${tvdbId} title="${title}"`);
+                return [];
             }
             const j = await r.json();
-            return j.nextAiring || null;
+            return Array.isArray(j.episodes) ? j.episodes : [];
         } catch (e) {
-            console.debug("[Owlfin] Sonarr NextEpisode: errore di rete", e);
-            return null;
+            console.debug("[Owlfin] Sonarr Episodes: errore di rete", e);
+            return [];
         }
     }
 
@@ -62,9 +62,84 @@
         }
     }
 
+    function episodeLabel(ep) {
+        const s = String(ep.season ?? 0).padStart(2, "0");
+        const e = String(ep.episode ?? 0).padStart(2, "0");
+        return ep.title ? `S${s}E${e} – ${ep.title}` : `S${s}E${e}`;
+    }
+
     function removeBadge() {
-        const old = document.getElementById("owlplugin-next-episode");
+        const old = document.getElementById("owlfin-next-episode");
         if (old) old.remove();
+    }
+
+    function onEscKey(e) {
+        if (e.key === "Escape") closeModal();
+    }
+
+    function closeModal() {
+        const old = document.getElementById("owlfin-episodes-overlay");
+        if (old) old.remove();
+        document.removeEventListener("keydown", onEscKey);
+    }
+
+    function openModal(episodes) {
+        closeModal();
+
+        const overlay = document.createElement("div");
+        overlay.id = "owlfin-episodes-overlay";
+        overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;";
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) closeModal();
+        });
+
+        const card = document.createElement("div");
+        card.style.cssText = "background:#202020;color:#fff;border-radius:10px;max-width:420px;width:100%;max-height:70vh;overflow-y:auto;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.5);";
+
+        const header = document.createElement("div");
+        header.style.cssText = "display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;";
+
+        const heading = document.createElement("h3");
+        heading.textContent = "Prossimi episodi";
+        heading.style.cssText = "margin:0;font-size:16px;font-weight:600;";
+
+        const closeBtn = document.createElement("button");
+        closeBtn.textContent = "✕";
+        closeBtn.setAttribute("aria-label", "Chiudi");
+        closeBtn.style.cssText = "background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;line-height:1;padding:4px;";
+        closeBtn.addEventListener("click", closeModal);
+        closeBtn.addEventListener("mouseenter", () => { closeBtn.style.color = "#fff"; });
+        closeBtn.addEventListener("mouseleave", () => { closeBtn.style.color = "#aaa"; });
+
+        header.appendChild(heading);
+        header.appendChild(closeBtn);
+
+        const list = document.createElement("ul");
+        list.style.cssText = "list-style:none;margin:0;padding:0;";
+
+        episodes.forEach((ep) => {
+            const li = document.createElement("li");
+            li.style.cssText = "display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;";
+
+            const label = document.createElement("span");
+            label.textContent = episodeLabel(ep);
+            label.style.cssText = "opacity:.9;";
+
+            const date = document.createElement("span");
+            date.textContent = formatDate(ep.airDate);
+            date.style.cssText = "opacity:.65;white-space:nowrap;";
+
+            li.appendChild(label);
+            li.appendChild(date);
+            list.appendChild(li);
+        });
+
+        card.appendChild(header);
+        card.appendChild(list);
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
+
+        document.addEventListener("keydown", onEscKey);
     }
 
     // Selettori con più fallback: i temi Jellyfin (incluso ElegantFin) possono
@@ -79,6 +154,7 @@
 
     async function tryShow(retriesLeft) {
         removeBadge();
+        closeModal();
 
         const itemId = currentItemId();
         if (!itemId) return;
@@ -111,23 +187,35 @@
             console.debug(`[Owlfin] nextepisode: nessun TVDB id per "${title}", provo per titolo`);
         }
 
-        const nextAiring = await fetchNextAiring(base, token, tvdbId, title);
-        if (!nextAiring) return;
+        let episodes = await fetchUpcomingEpisodes(base, token, tvdbId, title);
+        if (!episodes.length) return;
+
+        // Sulla pagina di una singola stagione mostra solo gli episodi di quella stagione.
+        if (item.Type === "Season" && typeof item.IndexNumber === "number") {
+            const seasonOnly = episodes.filter((ep) => ep.season === item.IndexNumber);
+            if (seasonOnly.length) episodes = seasonOnly;
+        }
 
         // Un'altra vista potrebbe essere già subentrata durante le await sopra.
         if (currentItemId() !== itemId) return;
         removeBadge();
 
+        const next = episodes[0];
         const badge = document.createElement("div");
-        badge.id = "owlplugin-next-episode";
-        badge.textContent = `Prossimo episodio il ${formatDate(nextAiring)}`;
-        badge.style.cssText = "margin:6px 0;font-size:14px;opacity:.85;";
+        badge.id = "owlfin-next-episode";
+        badge.textContent = episodes.length > 1
+            ? `Prossimo episodio: ${episodeLabel(next)} – ${formatDate(next.airDate)} (+${episodes.length - 1} in arrivo)`
+            : `Prossimo episodio: ${episodeLabel(next)} – ${formatDate(next.airDate)}`;
+        badge.style.cssText = "margin:6px 0;font-size:14px;opacity:.85;cursor:pointer;text-decoration:underline dotted;width:fit-content;";
+        badge.title = "Mostra tutte le date in arrivo";
+        badge.addEventListener("click", () => openModal(episodes));
 
         anchor.appendChild(badge);
     }
 
     function onNavigate() {
         removeBadge();
+        closeModal();
         tryShow(15); // fino a ~4.5s di retry (15 x 300ms)
     }
 
