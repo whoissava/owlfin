@@ -29,6 +29,7 @@ VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('build.yaml'))['ver
 
 echo "==> Building Owlfin ${VERSION} with jprm (dotnet clean/restore/publish under the hood)..."
 rm -rf "${DIST_DIR}"
+mkdir -p "${DIST_DIR}"
 ZIP_PATH=$(jprm plugin build . --output "${DIST_DIR}" --version "${VERSION}")
 echo "==> Built: ${ZIP_PATH}"
 echo "    (+ ${ZIP_PATH}.meta.json sidecar)"
