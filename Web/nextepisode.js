@@ -16,8 +16,8 @@
     }
 
     function currentItemId() {
-        const m = (location.hash || "").match(/[?&]id=([^&]+)/);
-        return m ? m[1] : null;
+        const m = location.href.match(/[?&#]id=([^&#]+)/);
+        return m ? decodeURIComponent(m[1]) : null;
     }
 
     async function fetchItem(base, userId, token, itemId) {
@@ -223,10 +223,8 @@
     window.addEventListener("hashchange", onNavigate);
     window.addEventListener("popstate", onNavigate);
 
-    // Rete di sicurezza: alcune versioni del client web non emettono "viewshow"
-    // durante la navigazione SPA (solo hashchange, o nessuno dei due su certe
-    // transizioni). Un piccolo polling sull'id dell'item corrente garantisce
-    // che il badge appaia comunque, senza dover ricaricare la pagina.
+    // Rete di sicurezza 1: polling sull'id item corrente (qualunque sia la
+    // parte di URL in cui questo client lo mette: hash, path o query).
     let lastSeenItemId = currentItemId();
     setInterval(() => {
         const id = currentItemId();
@@ -235,6 +233,20 @@
             onNavigate();
         }
     }, 800);
+
+    // Rete di sicurezza 2: il <title> della pagina cambia ad ogni item
+    // aperto, indipendentemente dal meccanismo di routing usato sotto --
+    // copre i client che non toccano affatto l'URL durante la navigazione.
+    const titleEl = document.querySelector("title");
+    if (titleEl) {
+        let lastTitle = document.title;
+        new MutationObserver(() => {
+            if (document.title !== lastTitle) {
+                lastTitle = document.title;
+                onNavigate();
+            }
+        }).observe(titleEl, { childList: true });
+    }
 
     onNavigate();
 })();
