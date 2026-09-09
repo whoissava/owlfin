@@ -1,7 +1,7 @@
 ---
 name: "Owlfin"
 guid: "b13839a6-5916-4f75-aed9-331901b8e3e6"
-version: "2.0.0.0"
+version: "2.0.1.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 overview: "Barra dei generi, righe per studio e prossimo episodio (Sonarr)"

@@ -88,13 +88,13 @@
 
         const overlay = document.createElement("div");
         overlay.id = "owlfin-episodes-overlay";
-        overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;";
+        overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;";
         overlay.addEventListener("click", (e) => {
             if (e.target === overlay) closeModal();
         });
 
         const card = document.createElement("div");
-        card.style.cssText = "background:#202020;color:#fff;border-radius:10px;max-width:420px;width:100%;max-height:70vh;overflow-y:auto;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.5);";
+        card.style.cssText = "background:rgba(28,28,30,.55);color:#fff;border-radius:18px;max-width:420px;width:100%;max-height:70vh;overflow-y:auto;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.35);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(255,255,255,.15);";
 
         const header = document.createElement("div");
         header.style.cssText = "display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;";
@@ -221,5 +221,20 @@
 
     document.addEventListener("viewshow", onNavigate);
     window.addEventListener("hashchange", onNavigate);
+    window.addEventListener("popstate", onNavigate);
+
+    // Rete di sicurezza: alcune versioni del client web non emettono "viewshow"
+    // durante la navigazione SPA (solo hashchange, o nessuno dei due su certe
+    // transizioni). Un piccolo polling sull'id dell'item corrente garantisce
+    // che il badge appaia comunque, senza dover ricaricare la pagina.
+    let lastSeenItemId = currentItemId();
+    setInterval(() => {
+        const id = currentItemId();
+        if (id !== lastSeenItemId) {
+            lastSeenItemId = id;
+            onNavigate();
+        }
+    }, 800);
+
     onNavigate();
 })();
