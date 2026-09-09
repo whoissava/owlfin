@@ -21,6 +21,14 @@ client web Jellyfin, ognuna attivabile/disattivabile separatamente:
 
 Dashboard → Plugins → Repositories → + → incolla:
 
+**Jellyfin 12.0.x**
+
+Dashboard → Plugins → Repositories → + → incolla:
+
+https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/manifest.json
+
+**Jellyfin 11.0.x**
+
 https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/manifest.json
 
 Poi Catalog → General → Owlfin → Install → riavvia Jellyfin.
