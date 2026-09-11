@@ -61,6 +61,17 @@
                         </div>
                     </div>
 
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input id="ChatEnabled" name="ChatEnabled" type="checkbox" is="emby-checkbox" />
+                            <span>Chat generale tra utenti</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Overlay di chat con storico illimitato, raggiungibile dal menu
+                            laterale. I messaggi sono visibili a tutti gli utenti del server.
+                        </div>
+                    </div>
+
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="SonarrUrl">URL Sonarr</label>
                         <input id="SonarrUrl" name="SonarrUrl" type="text" is="emby-input" placeholder="http://localhost:8989" />
@@ -98,6 +109,7 @@
                         document.querySelector('#StudiosEnabled').checked = config.StudiosEnabled;
                         document.querySelector('#SonarrEnabled').checked = config.SonarrEnabled;
                         document.querySelector('#GenresEnabled').checked = config.GenresEnabled;
+                        document.querySelector('#ChatEnabled').checked = config.ChatEnabled;
                         document.querySelector('#SonarrUrl').value = config.SonarrUrl || '';
                         document.querySelector('#SonarrApiKey').value = config.SonarrApiKey || '';
                         Dashboard.hideLoadingMsg();
@@ -112,6 +124,7 @@
                         config.StudiosEnabled = document.querySelector('#StudiosEnabled').checked;
                         config.SonarrEnabled = document.querySelector('#SonarrEnabled').checked;
                         config.GenresEnabled = document.querySelector('#GenresEnabled').checked;
+                        config.ChatEnabled = document.querySelector('#ChatEnabled').checked;
                         config.SonarrUrl = document.querySelector('#SonarrUrl').value;
                         config.SonarrApiKey = document.querySelector('#SonarrApiKey').value;
                         ApiClient.updatePluginConfiguration(OwlfinConfig.pluginUniqueId, config).then(function (result) {

@@ -10,8 +10,8 @@
     <!-- Bump both this and build.yaml's targetAbi together if your server reports
          the plugin as "NotSupported": the NuGet version must match (or be lower
          than) your installed Jellyfin server version. -->
-    <Version>1.3.5.0</Version>
-    <FileVersion>1.3.5.0</FileVersion>
+    <Version>1.4.0.0</Version>
+    <FileVersion>1.4.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='net9.0'">
@@ -47,6 +47,8 @@
     <EmbeddedResource Include="Web\nextepisode.js" />
     <None Remove="Web\genres.js" />
     <EmbeddedResource Include="Web\genres.js" />
+    <None Remove="Web\chat.js" />
+    <EmbeddedResource Include="Web\chat.js" />
   </ItemGroup>
 
 </Project>

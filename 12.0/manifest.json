@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.1.0.0",
+                "changelog": "2.1.0.0: aggiunta la chat generale tra utenti (chat.js), storico illimitato lato server, attivabile separatamente dalle altre feature.\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.1.0.0.zip",
+                "checksum": "3fc3931931154ee94ddf77d19dc70c03",
+                "timestamp": "2026-09-11T15:57:57Z"
+            },
+            {
                 "version": "2.0.9.0",
                 "changelog": "2.0.9.0: la voce 'Sfoglia Generi' ora si aggancia al drawer React/MUI di Jellyfin 12 (.MuiDrawer-paper), con fallback al client classico.\n",
                 "targetAbi": "12.0.0.0",

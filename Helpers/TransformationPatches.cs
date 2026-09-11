@@ -48,6 +48,11 @@ public static class TransformationPatches
             scripts += BuildScriptElement("Owlfin-Genres", "Web.genres.js");
         }
 
+        if (config.ChatEnabled)
+        {
+            scripts += BuildScriptElement("Owlfin-Chat", "Web.chat.js");
+        }
+
         if (string.IsNullOrEmpty(scripts))
         {
             return contents;

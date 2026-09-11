@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.4.0.0",
+                "changelog": "1.4.0.0: aggiunta la chat generale tra utenti (chat.js), storico illimitato lato server, attivabile separatamente dalle altre feature.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.4.0.0.zip",
+                "checksum": "dc267be639870abd8574e8d51b5d5913",
+                "timestamp": "2026-09-11T15:57:57Z"
+            },
+            {
                 "version": "1.3.6.0",
                 "changelog": "1.3.6.0: allineata alla 2.0.9.0 (nessun cambio funzionale per il client 10.11, stesso file genres.js con fallback MUI aggiunto).\n",
                 "targetAbi": "10.11.0.0",

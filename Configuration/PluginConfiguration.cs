@@ -15,6 +15,7 @@ public class PluginConfiguration : BasePluginConfiguration
         CategoriesEnabled = true;
         StudiosEnabled = true;
         GenresEnabled = true;
+        ChatEnabled = true;
         SonarrEnabled = false;
         SonarrUrl = string.Empty;
         SonarrApiKey = string.Empty;
@@ -40,6 +41,13 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Restart Jellyfin after changing this.
     /// </summary>
     public bool GenresEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the general chat between
+    /// users (chat.js) is injected into the web client. Restart Jellyfin
+    /// after changing this.
+    /// </summary>
+    public bool ChatEnabled { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the "next episode airs on"
