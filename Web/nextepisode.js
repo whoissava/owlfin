@@ -1,22 +1,9 @@
 (function () {
     "use strict";
 
-    // ============ OWLFIN DEBUG BANNER -- RIMUOVERE A DIAGNOSI CONCLUSA ============
-    const dbgBox = document.createElement("div");
-    dbgBox.id = "owlfin-debug-banner";
-    dbgBox.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:999999;background:#000;color:#0f0;font-size:10px;font-family:monospace;padding:6px;max-height:34vh;overflow-y:auto;opacity:.95;white-space:pre-wrap;word-break:break-all;";
-    document.body.appendChild(dbgBox);
-    const dbgLines = [];
-    function dbg(msg) {
-        const t = new Date().toISOString().substr(11, 12);
-        dbgLines.push(`${t} ${msg}`);
-        if (dbgLines.length > 60) dbgLines.shift();
-        dbgBox.textContent = dbgLines.join("\n");
-    }
-    dbg("script avviato (versione: intercetta fetch, non usa più l'URL)");
-    // ================================================================================
-
     let currentId = null;
+    let pendingEpisodes = null;
+
     if (!window.__owlfinFetchPatched) {
         window.__owlfinFetchPatched = true;
         const _fetch = window.fetch;
@@ -28,20 +15,12 @@
                     const isImages = /\/Images(\/|$)/i.test(url);
                     const isSimilar = /\/Similar/i.test(url);
                     if (!isImages && !isSimilar) {
-                        dbg(`fetch intercettato -> id=${m[1]} (${url.replace(/^https?:\/\/[^/]+/, "")})`);
                         window.dispatchEvent(new CustomEvent("owlfin:itemseen", { detail: m[1] }));
-                    } else {
-                        dbg(`fetch ignorato (images/similar): ${url.replace(/^https?:\/\/[^/]+/, "")}`);
                     }
                 }
-            } catch (e) {
-                dbg("errore nel patch fetch: " + e);
-            }
+            } catch (e) { /* silenzioso */ }
             return _fetch.apply(this, arguments);
         };
-        dbg("patch window.fetch installata");
-    } else {
-        dbg("patch window.fetch già presente");
     }
 
     function gc() {
@@ -76,11 +55,10 @@
             const r = await fetch(`${base}/Owlfin/Sonarr/Episodes/${tvdbId || 0}${params}`, {
                 headers: { Authorization: `MediaBrowser Token="${token}"` }
             });
-            if (!r.ok) { dbg(`fetchUpcomingEpisodes: HTTP ${r.status}`); return []; }
+            if (!r.ok) return [];
             const j = await r.json();
             return Array.isArray(j.episodes) ? j.episodes : [];
-        } catch (e) {
-            dbg("fetchUpcomingEpisodes: errore di rete " + e);
+        } catch {
             return [];
         }
     }
@@ -99,9 +77,11 @@
         return `S${s}E${e}${ep.title ? " – " + ep.title : ""}`;
     }
 
-    function removeBadge() {
-        const old = document.getElementById("owlfin-next-episode");
-        if (old) old.remove();
+    function getAnchor() {
+        return document.querySelector(".itemMiscInfo")
+            || document.querySelector(".nameContainer")
+            || document.querySelector(".detailPagePrimaryContainer")
+            || document.querySelector(".detailPageWrapper");
     }
 
     function onEscKey(e) { if (e.key === "Escape") closeModal(); }
@@ -159,50 +139,65 @@
         document.addEventListener("keydown", onEscKey);
     }
 
-    function getAnchor() {
-        return document.querySelector(".itemMiscInfo")
-            || document.querySelector(".nameContainer")
-            || document.querySelector(".detailPagePrimaryContainer")
-            || document.querySelector(".detailPageWrapper");
+    function renderBadge(itemId, episodes) {
+        const anchor = getAnchor();
+        if (!anchor || !anchor.parentElement) return false;
+
+        const existing = document.getElementById("owlfin-next-episode");
+        if (existing) {
+            if (existing.dataset.itemId === itemId) return true;
+            existing.remove();
+        }
+
+        const next = episodes[0];
+        const badge = document.createElement("div");
+        badge.id = "owlfin-next-episode";
+        badge.dataset.itemId = itemId;
+        badge.textContent = episodes.length > 1
+            ? `Prossimo episodio: ${episodeLabel(next)} – ${formatDate(next.airDate)} (+${episodes.length - 1} in arrivo)`
+            : `Prossimo episodio: ${episodeLabel(next)} – ${formatDate(next.airDate)}`;
+        badge.style.cssText = "margin:6px 0;font-size:14px;opacity:.85;cursor:pointer;text-decoration:underline dotted;width:fit-content;";
+        badge.title = "Mostra tutte le date in arrivo";
+        badge.addEventListener("click", () => openModal(episodes));
+        anchor.parentElement.insertBefore(badge, anchor.nextSibling);
+        return true;
     }
 
-    let navGeneration = 0;
+    function ensureBadge() {
+        if (!currentId || !pendingEpisodes || !pendingEpisodes.length) return;
+        const existing = document.getElementById("owlfin-next-episode");
+        if (!existing || existing.dataset.itemId !== currentId) {
+            renderBadge(currentId, pendingEpisodes);
+        }
+    }
 
-    async function tryShow(itemId, retriesLeft, myGeneration) {
-        if (myGeneration !== navGeneration) return;
+    // Observer permanente, creato una sola volta: non viene mai distrutto dalla
+    // navigazione SPA, quindi non resta mai orfano su un nodo rimosso da React.
+    new MutationObserver(ensureBadge).observe(document.body, { childList: true, subtree: true });
 
+    async function tryShow(itemId, retriesLeft) {
         const { token, userId, base } = gc();
         if (!token || !userId) {
-            if (retriesLeft > 0) setTimeout(() => tryShow(itemId, retriesLeft - 1, myGeneration), 300);
-            return;
-        }
-        if (!getAnchor()) {
-            dbg(`tryShow: anchor non trovato (retries=${retriesLeft})`);
-            if (retriesLeft > 0) setTimeout(() => tryShow(itemId, retriesLeft - 1, myGeneration), 300);
+            if (retriesLeft > 0) setTimeout(() => tryShow(itemId, retriesLeft - 1), 300);
             return;
         }
 
         const item = await fetchItem(base, userId, token, itemId);
-        if (myGeneration !== navGeneration) return;
-        if (!item || (item.Type !== "Series" && item.Type !== "Season")) {
-            dbg(`tryShow: item non è Series/Season (Type=${item && item.Type}), salto`);
-            return;
-        }
-        dbg(`tryShow: item OK, Type=${item.Type}, Name=${item.Name}`);
+        if (currentId !== itemId) return;
+        if (!item || (item.Type !== "Series" && item.Type !== "Season")) return;
 
         let tvdbId = item.ProviderIds && item.ProviderIds.Tvdb;
         let title = item.SeriesName || item.Name;
 
         if (!tvdbId && item.Type === "Season" && item.SeriesId) {
             const series = await fetchItem(base, userId, token, item.SeriesId);
-            if (myGeneration !== navGeneration) return;
+            if (currentId !== itemId) return;
             tvdbId = series && series.ProviderIds && series.ProviderIds.Tvdb;
             title = (series && series.Name) || title;
         }
 
         let episodes = await fetchUpcomingEpisodes(base, token, tvdbId, title);
-        if (myGeneration !== navGeneration) return;
-        dbg(`tryShow: Sonarr -> ${episodes.length} episodi per "${title}"`);
+        if (currentId !== itemId) return;
         if (!episodes.length) return;
 
         if (item.Type === "Season" && typeof item.IndexNumber === "number") {
@@ -210,49 +205,24 @@
             if (seasonOnly.length) episodes = seasonOnly;
         }
 
-        if (myGeneration !== navGeneration || currentId !== itemId) return;
-        const anchor = getAnchor();
-        if (!anchor || !anchor.parentElement) { dbg("tryShow: anchor o parentElement mancante, esco"); return; }
-
-        removeBadge();
-        const next = episodes[0];
-        const badge = document.createElement("div");
-        badge.id = "owlfin-next-episode";
-        badge.textContent = episodes.length > 1
-            ? `Prossimo episodio: ${episodeLabel(next)} – ${formatDate(next.airDate)} (+${episodes.length - 1} in arrivo)`
-            : `Prossimo episodio: ${episodeLabel(next)} – ${formatDate(next.airDate)}`;
-        badge.style.cssText = "margin:6px 0;font-size:14px;opacity:.85;cursor:pointer;text-decoration:underline dotted;width:fit-content;";
-        badge.title = "Mostra tutte le date in arrivo";
-        badge.addEventListener("click", () => openModal(episodes));
-
-        anchor.parentElement.insertBefore(badge, anchor.nextSibling);
-        dbg("tryShow: SUCCESSO, badge inserito come fratello dell'anchor");
-
-        const watchTarget = anchor.parentElement;
-        const healer = new MutationObserver(() => {
-            if (myGeneration !== navGeneration) { healer.disconnect(); return; }
-            if (document.getElementById("owlfin-next-episode")) return;
-            const freshAnchor = getAnchor();
-            if (freshAnchor && freshAnchor.parentElement) {
-                dbg("tryShow: badge rimosso dal framework, lo reinserisco");
-                freshAnchor.parentElement.insertBefore(badge, freshAnchor.nextSibling);
-            } else {
-                healer.disconnect();
-            }
-        });
-        healer.observe(watchTarget, { childList: true });
+        pendingEpisodes = episodes;
+        if (!renderBadge(itemId, episodes) && retriesLeft > 0) {
+            setTimeout(() => tryShow(itemId, retriesLeft - 1), 300);
+        }
     }
 
     window.addEventListener("owlfin:itemseen", (e) => {
         const id = e.detail;
         if (id === currentId) return;
-        dbg(`NUOVO ITEM RILEVATO: ${currentId} -> ${id}`);
         currentId = id;
-
-        navGeneration++;
-        const myGeneration = navGeneration;
-        removeBadge();
+        pendingEpisodes = null;
+        const old = document.getElementById("owlfin-next-episode");
+        if (old) old.remove();
         closeModal();
-        tryShow(id, 15, myGeneration);
+        tryShow(id, 15);
     });
+
+    // Reti di sicurezza aggiuntive per navigazioni che il fetch-hook potesse perdere.
+    window.addEventListener("hashchange", ensureBadge);
+    window.addEventListener("popstate", ensureBadge);
 })();
