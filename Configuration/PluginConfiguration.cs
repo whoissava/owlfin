@@ -14,6 +14,7 @@ public class PluginConfiguration : BasePluginConfiguration
     {
         CategoriesEnabled = true;
         StudiosEnabled = true;
+        GenresEnabled = true;
         SonarrEnabled = false;
         SonarrUrl = string.Empty;
         SonarrApiKey = string.Empty;
@@ -32,6 +33,13 @@ public class PluginConfiguration : BasePluginConfiguration
     /// after changing this.
     /// </summary>
     public bool StudiosEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the Netflix-style genre
+    /// browser overlay (genres.js) is injected into the web client.
+    /// Restart Jellyfin after changing this.
+    /// </summary>
+    public bool GenresEnabled { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the "next episode airs on"

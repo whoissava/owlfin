@@ -43,6 +43,11 @@ public static class TransformationPatches
             scripts += BuildScriptElement("Owlfin-Sonarr", "Web.nextepisode.js");
         }
 
+        if (config.GenresEnabled)
+        {
+            scripts += BuildScriptElement("Owlfin-Genres", "Web.genres.js");
+        }
+
         if (string.IsNullOrEmpty(scripts))
         {
             return contents;
