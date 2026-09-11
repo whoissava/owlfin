@@ -280,12 +280,38 @@
         }
     }
 
-    function injectMenuEntry() {
-        if (document.getElementById("gb-drawer-section")) return;
+    // Jellyfin 12+ (React/MUI): il drawer usa classi MUI reali generate dal
+    // bundle del client stesso, non da un tema - .MuiDrawer-paper è il pannello,
+    // .MuiListItemButton-root le singole voci, .MuiListSubheader-root le
+    // intestazioni di sezione come "Librerie".
+    function injectMuiMenuEntry(muiDrawer) {
+        if (document.getElementById("gb-mui-drawer-item")) return;
 
-        const drawer = document.querySelector(".mainDrawer-scrollContainer") ||
-                       document.querySelector(".mainDrawer");
-        if (!drawer) return;
+        const subheader = document.createElement("div");
+        subheader.id = "gb-mui-subheader";
+        subheader.className = "MuiListSubheader-root";
+        subheader.textContent = "Generi";
+        subheader.style.cssText = "padding:16px 20px 4px;list-style:none;";
+
+        const item = document.createElement("div");
+        item.id = "gb-mui-drawer-item";
+        item.className = "MuiListItemButton-root";
+        item.setAttribute("role", "button");
+        item.tabIndex = 0;
+        item.style.cssText = "display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;width:85%;margin:3px auto;list-style:none;";
+        item.innerHTML = '<span class="material-icons" style="font-size:1.35rem;opacity:.8;">theaters</span><span>Sfoglia Generi</span>';
+
+        const activate = e => { e.preventDefault(); e.stopPropagation(); openOverlay(); };
+        item.addEventListener("click", activate);
+        item.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") activate(e); });
+
+        muiDrawer.appendChild(subheader);
+        muiDrawer.appendChild(item);
+    }
+
+    // Client classico (10.11 e precedenti): struttura legacy con .mainDrawer.
+    function injectLegacyMenuEntry(drawer) {
+        if (document.getElementById("gb-drawer-section")) return;
 
         const homeLink = Array.from(drawer.children).find(el =>
             el.tagName === "A" && el.textContent.trim().toLowerCase() === "home"
@@ -310,14 +336,21 @@
 
         section.appendChild(label);
         section.appendChild(btn);
-
         drawer.insertBefore(section, homeLink.nextSibling);
+    }
 
-        document.querySelectorAll("a.navMenuOption, a[class*='navMenu']").forEach(el => {
-            if (el.href && el.href.includes("GenreBrowser")) {
-                el.style.display = "none";
-            }
-        });
+    function injectMenuEntry() {
+        if (document.getElementById("gb-drawer-section") || document.getElementById("gb-mui-drawer-item")) return;
+
+        const muiDrawer = document.querySelector(".MuiDrawer-paper");
+        if (muiDrawer) {
+            injectMuiMenuEntry(muiDrawer);
+            return;
+        }
+
+        const drawer = document.querySelector(".mainDrawer-scrollContainer") ||
+                       document.querySelector(".mainDrawer");
+        if (drawer) injectLegacyMenuEntry(drawer);
     }
 
     injectCSS();
