@@ -50,6 +50,17 @@
                         </div>
                     </div>
 
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input id="GenresEnabled" name="GenresEnabled" type="checkbox" is="emby-checkbox" />
+                            <span>Barra generi in stile Netflix (Genres)</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Overlay a schermo intero per sfogliare i generi disponibili, con
+                            filtro per Film/Serie TV, richiamabile dal menu laterale.
+                        </div>
+                    </div>
+
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="SonarrUrl">URL Sonarr</label>
                         <input id="SonarrUrl" name="SonarrUrl" type="text" is="emby-input" placeholder="http://localhost:8989" />
@@ -86,6 +97,7 @@
                         document.querySelector('#CategoriesEnabled').checked = config.CategoriesEnabled;
                         document.querySelector('#StudiosEnabled').checked = config.StudiosEnabled;
                         document.querySelector('#SonarrEnabled').checked = config.SonarrEnabled;
+                        document.querySelector('#GenresEnabled').checked = config.GenresEnabled;
                         document.querySelector('#SonarrUrl').value = config.SonarrUrl || '';
                         document.querySelector('#SonarrApiKey').value = config.SonarrApiKey || '';
                         Dashboard.hideLoadingMsg();
@@ -99,6 +111,7 @@
                         config.CategoriesEnabled = document.querySelector('#CategoriesEnabled').checked;
                         config.StudiosEnabled = document.querySelector('#StudiosEnabled').checked;
                         config.SonarrEnabled = document.querySelector('#SonarrEnabled').checked;
+                        config.GenresEnabled = document.querySelector('#GenresEnabled').checked;
                         config.SonarrUrl = document.querySelector('#SonarrUrl').value;
                         config.SonarrApiKey = document.querySelector('#SonarrApiKey').value;
                         ApiClient.updatePluginConfiguration(OwlfinConfig.pluginUniqueId, config).then(function (result) {

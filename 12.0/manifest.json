@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.0.8.0",
+                "changelog": "2.0.8.0: aggiunta la quarta feature indipendente, barra generi in stile Netflix (genres.js), con toggle dedicato in configurazione.\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.0.8.0.zip",
+                "checksum": "fc8f8529edb767fdfc7fed2ca2c1db81",
+                "timestamp": "2026-09-11T10:01:42Z"
+            },
+            {
                 "version": "2.0.7.0",
                 "changelog": "2.0.7.0: badge come sibling + auto-guarigione (React elimina i figli estranei dell'anchor). 2.0.2.0: glass effect + fix navigazione robusto (routing/title-agnostic). Versioni intermedie: fix su intercettazione fetch e osservatore di navigazione SPA.\n",
                 "targetAbi": "12.0.0.0",
