@@ -231,13 +231,42 @@
         } catch { /* silenzioso, il prossimo poll comunque non la vedrà se è fallita */ }
     }
 
+    // Il Drawer MUI di Jellyfin 12 ha un FocusTrap attivo finché non lo si
+    // chiude "per davvero" (via React, non solo nascondendolo via CSS) --
+    // altrimenti continua a rubare il focus a qualsiasi input fuori da sé,
+    // incluso il nostro overlay.
+    function closeMuiDrawerIfOpen() {
+        const backdrop = document.querySelector(".MuiBackdrop-root") || document.querySelector(".MuiModal-backdrop");
+        if (backdrop) { backdrop.click(); return true; }
+        return false;
+    }
+
     function openChat() {
-        injectCSS();
-        buildOverlay();
-        document.getElementById("owl-chat-overlay").classList.add("owl-chat-open");
-        overlayOpen = true;
-        const creds = getCreds();
-        loadInitialHistory(creds).then(() => poll(creds));
+        const hadMuiDrawer = closeMuiDrawerIfOpen();
+        closeSidebarLegacy();
+
+        const delay = hadMuiDrawer ? 200 : 0;
+        setTimeout(() => {
+            injectCSS();
+            buildOverlay();
+            document.getElementById("owl-chat-overlay").classList.add("owl-chat-open");
+            overlayOpen = true;
+            const creds = getCreds();
+            loadInitialHistory(creds).then(() => poll(creds));
+
+            const input = document.getElementById("owl-chat-input");
+            if (input) setTimeout(() => input.focus(), 50);
+        }, delay);
+    }
+
+    function closeSidebarLegacy() {
+        const mask = document.querySelector(".tmla-mask.backdrop");
+        if (mask) { mask.click(); return; }
+        const drawer = document.querySelector(".mainDrawer");
+        if (drawer) {
+            drawer.classList.remove("drawer-open");
+            drawer.classList.remove("touch-menu-la");
+        }
     }
 
     function closeChat() {

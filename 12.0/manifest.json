@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.1.2.0",
+                "changelog": "2.1.2.0: fix probabile causa del campo di testo della chat non utilizzabile - il Drawer MUI restava aperto (FocusTrap attivo) sotto l'overlay della chat; ora viene chiuso davvero (via backdrop) prima di aprirla, con autofocus sull'input.\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.1.2.0.zip",
+                "checksum": "4dd9d22d884c76af99ddbd0e73b88631",
+                "timestamp": "2026-09-12T06:50:37Z"
+            },
+            {
                 "version": "2.1.1.0",
                 "changelog": "2.1.1.0: fix campo di testo della chat non selezionabile su iOS Safari (user-select forzato text sull'input).\n",
                 "targetAbi": "12.0.0.0",
