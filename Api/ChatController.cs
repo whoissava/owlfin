@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using Jellyfin.Plugin.Owlfin.Helpers;
 using Jellyfin.Plugin.Owlfin.Model;
 using MediaBrowser.Controller.Library;
@@ -19,6 +20,14 @@ namespace Jellyfin.Plugin.Owlfin.Api;
 public class ChatController : ControllerBase
 {
     private const int MaxMessageLength = 1000;
+
+    // Il campo JSON deve essere camelCase per il client (timestampUtc, userId,
+    // ecc.) - non ci affidiamo alla configurazione JSON globale di Jellyfin,
+    // che serializza le proprie API in PascalCase.
+    private static readonly JsonSerializerOptions CamelCaseOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
     private readonly IUserManager _userManager;
 
@@ -59,7 +68,7 @@ public class ChatController : ControllerBase
             ? ChatStorage.GetMessagesSince(since.Value)
             : ChatStorage.GetAll();
 
-        return new JsonResult(new { messages });
+        return new JsonResult(new { messages }, CamelCaseOptions);
     }
 
     /// <summary>
@@ -83,6 +92,6 @@ public class ChatController : ControllerBase
         string username = user?.Username ?? "Utente";
 
         ChatMessage saved = ChatStorage.Append(request.UserId, username, text);
-        return new JsonResult(saved);
+        return new JsonResult(saved, CamelCaseOptions);
     }
 }

@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.1.5.0",
+                "changelog": "2.1.5.0: fix 'Invalid Date' e campi mancanti in chat - la risposta API ora forza camelCase invece di ereditare il PascalCase globale di Jellyfin.\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.1.5.0.zip",
+                "checksum": "aed2c67d73cd69acb3a56d815ab5ab29",
+                "timestamp": "2026-09-12T16:38:06Z"
+            },
+            {
                 "version": "2.1.4.0",
                 "changelog": "2.1.4.0: la chat ora si apre da un pulsante flottante sempre visibile invece che da una voce nel drawer MUI - Jellyfin Enhanced documenta che aprire pannelli dal drawer di Jellyfin 12 e' inaffidabile.\n",
                 "targetAbi": "12.0.0.0",

@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.4.5.0",
+                "changelog": "1.4.5.0: allineata alla 2.1.5.0.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.4.5.0.zip",
+                "checksum": "41a2317d58cffb009358d9e30eb7110f",
+                "timestamp": "2026-09-12T16:38:06Z"
+            },
+            {
                 "version": "1.4.4.0",
                 "changelog": "1.4.4.0: allineata alla 2.1.4.0.\n",
                 "targetAbi": "10.11.0.0",
