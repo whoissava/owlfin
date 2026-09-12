@@ -104,6 +104,10 @@
             font-size: 0.95rem;
             background: rgba(255,255,255,0.12);
             color: #fff;
+            -webkit-user-select: text !important;
+            user-select: text !important;
+            -webkit-touch-callout: default !important;
+            pointer-events: auto !important;
         }
         #owl-chat-input::placeholder { color: rgba(255,255,255,0.5); }
         #owl-chat-send {

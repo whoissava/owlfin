@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.4.1.0",
+                "changelog": "1.4.1.0: fix campo di testo della chat non selezionabile su iOS Safari (user-select forzato text sull'input).\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.4.1.0.zip",
+                "checksum": "7b72dc1e71f184f74b1a989f34546c7f",
+                "timestamp": "2026-09-12T06:37:23Z"
+            },
+            {
                 "version": "1.4.0.0",
                 "changelog": "1.4.0.0: aggiunta la chat generale tra utenti (chat.js), storico illimitato lato server, attivabile separatamente dalle altre feature.\n",
                 "targetAbi": "10.11.0.0",
