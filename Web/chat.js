@@ -240,9 +240,6 @@
     }
 
     function openChat() {
-        closeMuiDrawerIfOpen();
-        closeSidebarLegacy();
-
         injectCSS();
         buildOverlay();
         document.getElementById("owl-chat-overlay").classList.add("owl-chat-open");
@@ -250,8 +247,6 @@
         const creds = getCreds();
         loadInitialHistory(creds).then(() => poll(creds));
 
-        // Focus sincrono, nello stesso gesto utente - niente setTimeout,
-        // come nel form di Jellyfin Enhanced che sappiamo funzionare.
         const input = document.getElementById("owl-chat-input");
         if (input) input.focus();
     }
@@ -273,63 +268,24 @@
         if (pollTimer) clearTimeout(pollTimer);
     }
 
-    // --- Voce in sidebar: stesso doppio aggancio (MUI 12+ / legacy 10.11) di genres.js ---
+    // Pulsante flottante fisso, sempre visibile, indipendente dal drawer --
+    // Jellyfin Enhanced ha documentato che aprire un pannello dal click
+    // dentro il drawer MUI di Jellyfin 12 e' inaffidabile (hanno dovuto
+    // spostare il loro "Enhanced Panel" fuori dal drawer per lo stesso
+    // motivo), quindi qui evitiamo del tutto quel percorso.
+    function injectFab() {
+        if (document.getElementById("owl-chat-fab")) return;
+        injectCSS();
 
-    function injectMuiMenuEntry(muiDrawer) {
-        if (document.getElementById("owl-chat-mui-item")) return;
-        const subheader = document.createElement("div");
-        subheader.className = "MuiListSubheader-root";
-        subheader.textContent = "Community";
-        subheader.style.cssText = "padding:16px 20px 4px;list-style:none;";
-
-        const item = document.createElement("div");
-        item.id = "owl-chat-mui-item";
-        item.className = "MuiListItemButton-root";
-        item.setAttribute("role", "button");
-        item.tabIndex = 0;
-        item.style.cssText = "display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;width:85%;margin:3px auto;list-style:none;";
-        item.innerHTML = '<span class="material-icons" style="font-size:1.35rem;opacity:.8;">chat</span><span>Chat generale</span>';
-
-        const activate = e => { e.preventDefault(); e.stopPropagation(); openChat(); };
-        item.addEventListener("click", activate);
-        item.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") activate(e); });
-
-        muiDrawer.appendChild(subheader);
-        muiDrawer.appendChild(item);
+        const fab = document.createElement("button");
+        fab.id = "owl-chat-fab";
+        fab.style.cssText = "position:fixed;right:18px;bottom:24px;z-index:99998;width:52px;height:52px;border-radius:50%;border:none;background:rgba(100,150,255,0.85);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;";
+        fab.innerHTML = '<span class="material-icons" style="font-size:1.6rem;">chat</span>';
+        fab.addEventListener("click", openChat);
+        document.body.appendChild(fab);
     }
 
-    function injectLegacyMenuEntry(drawer) {
-        if (document.getElementById("owl-chat-legacy-section")) return;
-        const homeLink = Array.from(drawer.children).find(el =>
-            el.tagName === "A" && el.textContent.trim().toLowerCase() === "home"
-        );
-        if (!homeLink) return;
-
-        const section = document.createElement("div");
-        section.id = "owl-chat-legacy-section";
-        const label = document.createElement("div");
-        label.className = "gb-section-label";
-        label.textContent = "Community";
-        const btn = document.createElement("button");
-        btn.id = "owl-chat-legacy-btn";
-        btn.innerHTML = '<span class="gb-di">chat</span><span class="gb-dt">Chat generale</span>';
-        btn.addEventListener("click", e => { e.preventDefault(); e.stopImmediatePropagation(); openChat(); }, true);
-
-        section.appendChild(label);
-        section.appendChild(btn);
-        drawer.insertBefore(section, homeLink.nextSibling);
-    }
-
-    function injectMenuEntry() {
-        if (document.getElementById("owl-chat-mui-item") || document.getElementById("owl-chat-legacy-section")) return;
-
-        const muiDrawer = document.querySelector(".MuiDrawer-paper");
-        if (muiDrawer) { injectMuiMenuEntry(muiDrawer); return; }
-
-        const drawer = document.querySelector(".mainDrawer-scrollContainer") || document.querySelector(".mainDrawer");
-        if (drawer) injectLegacyMenuEntry(drawer);
-    }
-
+    injectFab();
     injectCSS();
     document.addEventListener("viewshow", () => setTimeout(injectMenuEntry, 400));
     setTimeout(injectMenuEntry, 1000);
