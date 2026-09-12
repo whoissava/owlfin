@@ -376,10 +376,15 @@
         document.body.appendChild(fab);
     }
 
+    function isLoggedIn() {
+        const creds = getCreds();
+        return !!(creds.token && creds.userId);
+    }
+
     function updateFabVisibility() {
         const fab = document.getElementById("owl-chat-fab");
         if (!fab) return;
-        const shouldShow = isHomePage();
+        const shouldShow = isLoggedIn() && isHomePage();
         fab.classList.toggle("owl-chat-fab-visible", shouldShow);
         if (!shouldShow && overlayOpen) closeChat();
     }

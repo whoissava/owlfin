@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.1.7.0",
+                "changelog": "2.1.7.0: la chat non compare piu' in fase di login - richiede una sessione autenticata valida, non solo il rilevamento euristico della pagina Home.\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.1.7.0.zip",
+                "checksum": "0dda287240fd20aeeb948c9a4b42f777",
+                "timestamp": "2026-09-12T17:07:16Z"
+            },
+            {
                 "version": "2.1.6.0",
                 "changelog": "2.1.6.0: chat visibile solo in Home (nascosta su dettaglio episodio/serie, ricerca, liste), restyling del pulsante flottante e delle bolle messaggio, stato vuoto.\n",
                 "targetAbi": "12.0.0.0",
