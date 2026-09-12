@@ -30,9 +30,7 @@
             position: fixed;
             inset: 0;
             z-index: 99999;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: rgba(15, 15, 18, 0.97);
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
@@ -242,21 +240,20 @@
     }
 
     function openChat() {
-        const hadMuiDrawer = closeMuiDrawerIfOpen();
+        closeMuiDrawerIfOpen();
         closeSidebarLegacy();
 
-        const delay = hadMuiDrawer ? 200 : 0;
-        setTimeout(() => {
-            injectCSS();
-            buildOverlay();
-            document.getElementById("owl-chat-overlay").classList.add("owl-chat-open");
-            overlayOpen = true;
-            const creds = getCreds();
-            loadInitialHistory(creds).then(() => poll(creds));
+        injectCSS();
+        buildOverlay();
+        document.getElementById("owl-chat-overlay").classList.add("owl-chat-open");
+        overlayOpen = true;
+        const creds = getCreds();
+        loadInitialHistory(creds).then(() => poll(creds));
 
-            const input = document.getElementById("owl-chat-input");
-            if (input) setTimeout(() => input.focus(), 50);
-        }, delay);
+        // Focus sincrono, nello stesso gesto utente - niente setTimeout,
+        // come nel form di Jellyfin Enhanced che sappiamo funzionare.
+        const input = document.getElementById("owl-chat-input");
+        if (input) input.focus();
     }
 
     function closeSidebarLegacy() {
