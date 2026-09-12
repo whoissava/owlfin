@@ -96,26 +96,82 @@
         }
         #owl-chat-input {
             flex: 1;
-            border-radius: 20px;
-            border: none;
-            padding: 10px 16px;
+            border-radius: 22px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px 18px;
             font-size: 0.95rem;
-            background: rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.10);
             color: #fff;
+            outline: none;
+            transition: border-color 0.15s, background 0.15s;
             -webkit-user-select: text !important;
             user-select: text !important;
             -webkit-touch-callout: default !important;
             pointer-events: auto !important;
         }
-        #owl-chat-input::placeholder { color: rgba(255,255,255,0.5); }
+        #owl-chat-input:focus {
+            border-color: rgba(120,160,255,0.7);
+            background: rgba(255,255,255,0.14);
+        }
+        #owl-chat-input::placeholder { color: rgba(255,255,255,0.45); }
         #owl-chat-send {
             border-radius: 50%;
-            width: 42px; height: 42px;
+            width: 46px; height: 46px;
             border: none;
-            background: rgba(100,150,255,0.6);
+            background: rgb(88, 130, 240);
             color: #fff;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(88,130,240,0.4);
+            transition: transform 0.1s, opacity 0.15s;
+            flex-shrink: 0;
         }
+        #owl-chat-send:active { transform: scale(0.92); }
+        #owl-chat-send:disabled { opacity: 0.4; box-shadow: none; cursor: default; }
+        .owl-chat-empty {
+            color: rgba(255,255,255,0.45);
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 0.95rem;
+        }
+        .owl-chat-fab {
+            position: fixed;
+            right: 18px;
+            bottom: 24px;
+            z-index: 99998;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            border: none;
+            background: rgb(88, 130, 240);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(88,130,240,0.5);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0.6);
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .owl-chat-fab-visible { opacity: 1; transform: scale(1); pointer-events: auto; }
+        .owl-chat-fab:active { transform: scale(0.9); }
+        .owl-chat-fab .material-icons { font-size: 1.5rem; }
+        .owl-chat-fab-dot {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff5252;
+            border: 2px solid rgb(88, 130, 240);
+            display: none;
+        }
+        .owl-chat-fab-dot-visible { display: block; }
         `;
         document.head.appendChild(s);
     }
@@ -180,8 +236,12 @@
             if (!r.ok) return;
             const j = await r.json();
             const messages = j.messages || [];
-            if (messages.length) lastSeenUtc = messages[messages.length - 1].timestampUtc;
-            renderMessages(messages, creds.userId);
+            if (messages.length) {
+                lastSeenUtc = messages[messages.length - 1].timestampUtc;
+                renderMessages(messages, creds.userId);
+            } else if (list) {
+                list.innerHTML = '<div class="owl-chat-empty">Nessun messaggio ancora - scrivi il primo!</div>';
+            }
             const listEl = document.getElementById("owl-chat-messages");
             if (listEl) listEl.scrollTop = listEl.scrollHeight;
         } catch { /* silenzioso: riproveremo al prossimo poll */ }
@@ -200,6 +260,8 @@
                 const j = await r.json();
                 const messages = j.messages || [];
                 if (messages.length) {
+                    const empty = document.querySelector(".owl-chat-empty");
+                    if (empty) empty.remove();
                     lastSeenUtc = messages[messages.length - 1].timestampUtc;
                     renderMessages(messages, creds.userId);
                 }
@@ -273,19 +335,61 @@
     // dentro il drawer MUI di Jellyfin 12 e' inaffidabile (hanno dovuto
     // spostare il loro "Enhanced Panel" fuori dal drawer per lo stesso
     // motivo), quindi qui evitiamo del tutto quel percorso.
+    function isHomePage() {
+        // Client legacy: home ha hash vuoto o "#!/home.html", ed esiste
+        // il contenitore #indexPage visibile.
+        const hash = location.hash || "";
+        const legacyHome = hash === "" || hash === "#!/home.html" || hash.startsWith("#!/home.html?");
+        const legacyIndexVisible = !!document.querySelector("#indexPage:not(.hide)");
+
+        // Segnali che indicano SICURAMENTE che non siamo in home, su
+        // qualsiasi versione del client - pagina di dettaglio item,
+        // ricerca, o pagine di libreria/lista.
+        const onDetailPage = !!document.querySelector("#itemDetailPage:not(.hide)")
+            || !!document.querySelector(".detailPageWrapper")
+            || !!document.querySelector(".detailPagePrimaryContainer");
+        const onSearchOrList = !!document.querySelector("#searchPage:not(.hide)")
+            || !!document.querySelector("#itemListPage:not(.hide)")
+            || location.pathname.includes("/search")
+            || location.pathname.includes("/list");
+
+        if (onDetailPage || onSearchOrList) return false;
+
+        // Client Jellyfin 12 (MUI, routing via pathname, non hash):
+        // consideriamo "home" quando il path e' la radice o termina
+        // esplicitamente in /home, e nessuno dei segnali "non home" sopra e' vero.
+        const path = location.pathname || "";
+        const muiHome = path === "/" || path === "/web/" || path.endsWith("/web/index.html") || path.endsWith("/home");
+
+        return legacyHome || legacyIndexVisible || muiHome;
+    }
+
     function injectFab() {
         if (document.getElementById("owl-chat-fab")) return;
         injectCSS();
 
         const fab = document.createElement("button");
         fab.id = "owl-chat-fab";
-        fab.style.cssText = "position:fixed;right:18px;bottom:24px;z-index:99998;width:52px;height:52px;border-radius:50%;border:none;background:rgba(100,150,255,0.85);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;";
-        fab.innerHTML = '<span class="material-icons" style="font-size:1.6rem;">chat</span>';
+        fab.className = "owl-chat-fab";
+        fab.innerHTML = '<span class="material-icons">chat_bubble</span><span class="owl-chat-fab-dot" id="owl-chat-fab-dot"></span>';
         fab.addEventListener("click", openChat);
         document.body.appendChild(fab);
     }
 
+    function updateFabVisibility() {
+        const fab = document.getElementById("owl-chat-fab");
+        if (!fab) return;
+        const shouldShow = isHomePage();
+        fab.classList.toggle("owl-chat-fab-visible", shouldShow);
+        if (!shouldShow && overlayOpen) closeChat();
+    }
+
     injectFab();
+    updateFabVisibility();
+    setInterval(updateFabVisibility, 800);
+    window.addEventListener("hashchange", updateFabVisibility);
+    window.addEventListener("popstate", updateFabVisibility);
+    document.addEventListener("viewshow", () => setTimeout(updateFabVisibility, 200));
     injectCSS();
     document.addEventListener("viewshow", () => setTimeout(injectMenuEntry, 400));
     setTimeout(injectMenuEntry, 1000);

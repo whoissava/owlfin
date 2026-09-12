@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.1.6.0",
+                "changelog": "2.1.6.0: chat visibile solo in Home (nascosta su dettaglio episodio/serie, ricerca, liste), restyling del pulsante flottante e delle bolle messaggio, stato vuoto.\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.1.6.0.zip",
+                "checksum": "600d0ddef90fcea85ca02ed04c97c13a",
+                "timestamp": "2026-09-12T16:58:49Z"
+            },
+            {
                 "version": "2.1.5.0",
                 "changelog": "2.1.5.0: fix 'Invalid Date' e campi mancanti in chat - la risposta API ora forza camelCase invece di ereditare il PascalCase globale di Jellyfin.\n",
                 "targetAbi": "12.0.0.0",
