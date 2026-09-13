@@ -8,6 +8,22 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.4.9.0",
+                "changelog": "1.4.9.0: allineata alla 2.1.9.0.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.4.9.0.zip",
+                "checksum": "2ae206b5e5398dd6ea1ac71206fded63",
+                "timestamp": "2026-09-13T06:32:08Z"
+            },
+            {
+                "version": "1.4.8.0",
+                "changelog": "1.4.8.0: allineata alla 2.1.8.0.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.4.8.0.zip",
+                "checksum": "50066fae39ee4e3583f1ed2809ec879e",
+                "timestamp": "2026-09-12T21:24:20Z"
+            },
+            {
                 "version": "1.4.7.0",
                 "changelog": "1.4.7.0: allineata alla 2.1.7.0.\n",
                 "targetAbi": "10.11.0.0",

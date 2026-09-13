@@ -82,6 +82,23 @@
                         <input id="SonarrApiKey" name="SonarrApiKey" type="password" is="emby-input" />
                     </div>
 
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input id="TrendingEnabled" name="TrendingEnabled" type="checkbox" is="emby-checkbox" />
+                            <span>Banner Top 10 di tendenza (TMDB)</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Mostra in cima alla Home un banner orizzontale con i 10 film/serie
+                            piu' popolari del momento secondo TMDB. Richiede una API key TMDB
+                            gratuita, mai inviata al browser.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="TmdbApiKey">API key TMDB</label>
+                        <input id="TmdbApiKey" name="TmdbApiKey" type="password" is="emby-input" />
+                    </div>
+
                     <div class="fieldDescription">
                         Riavvia Jellyfin dopo aver cambiato una qualsiasi di queste opzioni.
                         Categories/Studio/Sonarr richiedono il plugin File Transformation
@@ -110,6 +127,8 @@
                         document.querySelector('#SonarrEnabled').checked = config.SonarrEnabled;
                         document.querySelector('#GenresEnabled').checked = config.GenresEnabled;
                         document.querySelector('#ChatEnabled').checked = config.ChatEnabled;
+                        document.querySelector('#TrendingEnabled').checked = config.TrendingEnabled;
+                        document.querySelector('#TmdbApiKey').value = config.TmdbApiKey || '';
                         document.querySelector('#SonarrUrl').value = config.SonarrUrl || '';
                         document.querySelector('#SonarrApiKey').value = config.SonarrApiKey || '';
                         Dashboard.hideLoadingMsg();
@@ -125,6 +144,8 @@
                         config.SonarrEnabled = document.querySelector('#SonarrEnabled').checked;
                         config.GenresEnabled = document.querySelector('#GenresEnabled').checked;
                         config.ChatEnabled = document.querySelector('#ChatEnabled').checked;
+                        config.TrendingEnabled = document.querySelector('#TrendingEnabled').checked;
+                        config.TmdbApiKey = document.querySelector('#TmdbApiKey').value;
                         config.SonarrUrl = document.querySelector('#SonarrUrl').value;
                         config.SonarrApiKey = document.querySelector('#SonarrApiKey').value;
                         ApiClient.updatePluginConfiguration(OwlfinConfig.pluginUniqueId, config).then(function (result) {
