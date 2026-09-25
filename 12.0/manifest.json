@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.1.11.0",
+                "changelog": "2.1.11.0: il banner Top 10 ora trova il punto di inserimento in Home basandosi sul pattern URL delle immagini item di Jellyfin (invariante tra versioni del client) invece che su nomi di classe CSS legacy.\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.1.11.0.zip",
+                "checksum": "088454e37adba305e4f728b36a35b1b6",
+                "timestamp": "2026-09-13T15:58:28Z"
+            },
+            {
                 "version": "2.1.9.0",
                 "changelog": "2.1.9.0: fix - il campo API key TMDB e il relativo checkbox mancavano dalla pagina impostazioni (mai scritti in configPage.html nonostante il codice server-side/client fosse gia' pronto dalla 2.1.8.0).\n",
                 "targetAbi": "12.0.0.0",

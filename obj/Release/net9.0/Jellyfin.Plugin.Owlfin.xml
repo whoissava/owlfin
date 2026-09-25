@@ -4,24 +4,90 @@
         <name>Jellyfin.Plugin.Owlfin</name>
     </assembly>
     <members>
-        <member name="T:Jellyfin.Plugin.Owlfin.Api.SonarrController">
+        <member name="T:Jellyfin.Plugin.Owlfin.Api.ChatController">
             <summary>
-            Proxies a single read-only question to Sonarr -- "when does this series next air?" --
-            so <c>Web/nextepisode.js</c> never needs the Sonarr URL or API key itself. The key
-            lives only in <see cref="T:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration"/>, read and used here,
-            server-side.
+            General chat between users of this server. The client sends its own
+            userId with each call (same trust model already used by
+            <c>Web/genres.js</c> and <c>Web/nextepisode.js</c> elsewhere in this
+            plugin -- there is no separate authorization check here beyond that),
+            and the server resolves the display name via <see cref="T:MediaBrowser.Controller.Library.IUserManager"/>
+            so a client can never claim to be someone else's username.
             </summary>
         </member>
-        <member name="M:Jellyfin.Plugin.Owlfin.Api.SonarrController.GetNextEpisode(System.Int32,System.String)">
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.ChatController.#ctor(MediaBrowser.Controller.Library.IUserManager)">
             <summary>
-            Returns the next-airing date (if any) for the Sonarr series matching the given
-            TVDB id, or 404 if not configured/not found. If <paramref name="tvdbId"/> is 0
-            (Jellyfin has no TVDB id for this item -- common for very new releases), falls
-            back to a case-insensitive title match via <paramref name="title"/>.
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Owlfin.Api.ChatController"/> class.
+            </summary>
+            <param name="userManager">Instance of the <see cref="T:MediaBrowser.Controller.Library.IUserManager"/> interface.</param>
+        </member>
+        <member name="T:Jellyfin.Plugin.Owlfin.Api.ChatController.PostChatMessageRequest">
+            <summary>
+            Request body for <see cref="M:Jellyfin.Plugin.Owlfin.Api.ChatController.PostMessage(Jellyfin.Plugin.Owlfin.Api.ChatController.PostChatMessageRequest)"/>.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Api.ChatController.PostChatMessageRequest.UserId">
+            <summary>
+            Gets or sets the id of the sending user.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Api.ChatController.PostChatMessageRequest.Text">
+            <summary>
+            Gets or sets the message text.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.ChatController.GetMessages(System.Nullable{System.DateTime})">
+            <summary>
+            Returns chat messages, either the full history or (with
+            <paramref name="since"/>) only messages newer than that timestamp,
+            for polling.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.ChatController.PostMessage(Jellyfin.Plugin.Owlfin.Api.ChatController.PostChatMessageRequest)">
+            <summary>
+            Appends a new chat message.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Owlfin.Api.SonarrController">
+            <summary>
+            Proxies read-only questions to Sonarr -- "what episodes are still to air for this
+            series?" -- so <c>Web/nextepisode.js</c> never needs the Sonarr URL or API key itself.
+            The key lives only in <see cref="T:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration"/>, read and used
+            here, server-side.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.SonarrController.GetUpcomingEpisodes(System.Int32,System.String)">
+            <summary>
+            Returns every not-yet-aired episode (season, episode number, title, air date) for
+            the Sonarr series matching the given TVDB id, sorted by air date ascending, or 404
+            if not configured/not found. If <paramref name="tvdbId"/> is 0 (Jellyfin has no
+            TVDB id for this item -- common for very new releases), falls back to a
+            case-insensitive title match via <paramref name="title"/>.
             </summary>
             <param name="tvdbId">The TheTVDB id of the series (matches Jellyfin's own ProviderIds.Tvdb), or 0 if unknown.</param>
             <param name="title">Fallback series title, used only when <paramref name="tvdbId"/> is 0.</param>
-            <returns>A JSON object <c>{ "nextAiring": "..." }</c> (or null).</returns>
+            <returns>A JSON object <c>{ "episodes": [{ "season": 3, "episode": 5, "title": "...", "airDate": "..." }, ...] }</c>.</returns>
+        </member>
+        <member name="T:Jellyfin.Plugin.Owlfin.Api.TrendingController">
+            <summary>
+            Proxies TMDB's daily trending endpoint (movies + TV combined, top 10),
+            cross-referenced against the local Jellyfin library so the client can show
+            which trending titles are already available and deep-link straight to
+            them. The TMDB key lives only in <see cref="T:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration"/>,
+            read and used here, server-side. Results are cached for an hour.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.TrendingController.#ctor(MediaBrowser.Controller.Library.ILibraryManager)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Owlfin.Api.TrendingController"/> class.
+            </summary>
+            <param name="libraryManager">Instance of the <see cref="T:MediaBrowser.Controller.Library.ILibraryManager"/> interface.</param>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.TrendingController.GetTrending">
+            <summary>
+            Returns today's top 10 trending movies/TV shows from TMDB, each
+            annotated with whether it exists in the local library. 404 if not
+            configured.
+            </summary>
         </member>
         <member name="T:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration">
             <summary>
@@ -47,6 +113,34 @@
             after changing this.
             </summary>
         </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.GenresEnabled">
+            <summary>
+            Gets or sets a value indicating whether the Netflix-style genre
+            browser overlay (genres.js) is injected into the web client.
+            Restart Jellyfin after changing this.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.ChatEnabled">
+            <summary>
+            Gets or sets a value indicating whether the general chat between
+            users (chat.js) is injected into the web client. Restart Jellyfin
+            after changing this.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.TrendingEnabled">
+            <summary>
+            Gets or sets a value indicating whether the TMDB trending Top 10
+            banner (trending.js) is injected into the web client's Home page.
+            Requires <see cref="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.TmdbApiKey"/>. Restart Jellyfin after changing this.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.TmdbApiKey">
+            <summary>
+            Gets or sets the TMDB API key (v3 auth), used only in server-side
+            requests from <see cref="T:Jellyfin.Plugin.Owlfin.Api.TrendingController"/> -- never sent to
+            the browser. Get a free key at themoviedb.org.
+            </summary>
+        </member>
         <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.SonarrEnabled">
             <summary>
             Gets or sets a value indicating whether the "next episode airs on"
@@ -67,6 +161,31 @@
             from <see cref="T:Jellyfin.Plugin.Owlfin.Api.SonarrController"/> -- never sent to the browser.
             </summary>
         </member>
+        <member name="T:Jellyfin.Plugin.Owlfin.Helpers.ChatStorage">
+            <summary>
+            Append-only, unlimited chat history. Stored as newline-delimited JSON
+            (one message per line) in the plugin's own data folder, so appending
+            never requires rewriting the whole file. The in-memory list is loaded
+            once and kept as the source of truth for reads; writes go to memory
+            and disk together under a lock.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Helpers.ChatStorage.GetAll">
+            <summary>
+            Returns every message, oldest first.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Helpers.ChatStorage.GetMessagesSince(System.DateTime)">
+            <summary>
+            Returns messages strictly after the given UTC timestamp, oldest first.
+            Used for polling.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Helpers.ChatStorage.Append(System.Guid,System.String,System.String)">
+            <summary>
+            Appends a new message and persists it immediately.
+            </summary>
+        </member>
         <member name="T:Jellyfin.Plugin.Owlfin.Helpers.TransformationPatches">
             <summary>
             Callback methods invoked by the File Transformation plugin to patch served files.
@@ -80,6 +199,38 @@
             </summary>
             <param name="payload">The current contents of index.html.</param>
             <returns>The patched contents.</returns>
+        </member>
+        <member name="T:Jellyfin.Plugin.Owlfin.Model.ChatMessage">
+            <summary>
+            A single message in the general chat between users.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Model.ChatMessage.Id">
+            <summary>
+            Gets or sets the message id.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Model.ChatMessage.UserId">
+            <summary>
+            Gets or sets the id of the Jellyfin user who sent the message.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Model.ChatMessage.Username">
+            <summary>
+            Gets or sets the display name of the sender, resolved server-side
+            via <see cref="T:MediaBrowser.Controller.Library.IUserManager"/> so the
+            client never has to be trusted for it.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Model.ChatMessage.Text">
+            <summary>
+            Gets or sets the message text.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Model.ChatMessage.TimestampUtc">
+            <summary>
+            Gets or sets the UTC timestamp the message was received.
+            </summary>
         </member>
         <member name="T:Jellyfin.Plugin.Owlfin.Model.PatchRequestPayload">
             <summary>

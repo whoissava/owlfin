@@ -1,0 +1,5 @@
+/tmp/tmpdta_ty5o/Jellyfin.Plugin.Owlfin.dll
+/tmp/tmpdta_ty5o/Jellyfin.Plugin.Owlfin.deps.json
+/tmp/tmpdta_ty5o/Jellyfin.Plugin.Owlfin.pdb
+/tmp/tmpdta_ty5o/Newtonsoft.Json.dll
+/tmp/tmpdta_ty5o/Jellyfin.Plugin.Owlfin.xml

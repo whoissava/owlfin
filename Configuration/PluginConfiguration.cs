@@ -16,6 +16,8 @@ public class PluginConfiguration : BasePluginConfiguration
         StudiosEnabled = true;
         GenresEnabled = true;
         ChatEnabled = true;
+        TrendingEnabled = false;
+        TmdbApiKey = string.Empty;
         SonarrEnabled = false;
         SonarrUrl = string.Empty;
         SonarrApiKey = string.Empty;
@@ -48,6 +50,20 @@ public class PluginConfiguration : BasePluginConfiguration
     /// after changing this.
     /// </summary>
     public bool ChatEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the TMDB trending Top 10
+    /// banner (trending.js) is injected into the web client's Home page.
+    /// Requires <see cref="TmdbApiKey"/>. Restart Jellyfin after changing this.
+    /// </summary>
+    public bool TrendingEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the TMDB API key (v3 auth), used only in server-side
+    /// requests from <see cref="Api.TrendingController"/> -- never sent to
+    /// the browser. Get a free key at themoviedb.org.
+    /// </summary>
+    public string TmdbApiKey { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets a value indicating whether the "next episode airs on"
