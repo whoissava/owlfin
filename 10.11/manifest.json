@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.5.0.0",
+                "changelog": "1.5.0.0: allineata alla 2.2.0.0 (stesso seasons.js): selettore stagioni/episodi con segna come visto automatico.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.5.0.0.zip",
+                "checksum": "4daff21ad6515cf6043a447d2b53a63f",
+                "timestamp": "2026-09-25T18:43:42Z"
+            },
+            {
                 "version": "1.4.10.0",
                 "changelog": "1.4.10.0: allineata alla 2.1.11.0.\n",
                 "targetAbi": "10.11.0.0",

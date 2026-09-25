@@ -6,7 +6,7 @@
     "name": "Owlfin",
     "overview": "Barra dei generi, righe per studio e prossimo episodio (Sonarr)",
     "owner": "sava",
-    "targetAbi": "12.0.0.0",
-    "timestamp": "2026-09-25T18:22:28Z",
-    "version": "2.0.7.0"
+    "targetAbi": "10.11.0.0",
+    "timestamp": "2026-09-25T18:43:39Z",
+    "version": "1.5.0.0"
 }
