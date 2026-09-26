@@ -13,7 +13,6 @@ Personalizzazioni indipendenti per il client web di Jellyfin, ognuna attivabile 
 | **Prossimo episodio** | Mostra *"Prossimo episodio il ..."* sulle pagine serie/stagione, leggendo la data da Sonarr |
 | **Selettore stagioni** | Selettore stagioni con griglia episodi a scorrimento, segno automatico puntate precedenti e pulsante "Segna stagione come vista" |
 | **Chat** | Chat generale tra tutti gli utenti del server, accessibile dal menu laterale |
-| **Top 10 tendenze** | Banner in cima alla Home con i 10 titoli più popolari del momento, con badge "In libreria" e link diretto ai titoli presenti sul server (richiede API key TMDB) |
 | **Di Tendenza Ora** | Sezione orizzontale in Home con card backdrop dei titoli TMDB presenti in libreria. Tocco normale apre il dettaglio Jellyfin, long press avvia il trailer italiano su YouTube direttamente nella card (richiede API key TMDB) |
 
 ---
