@@ -1,54 +1,62 @@
 # Owlfin
 
-Tre personalizzazioni indipendenti per la home e le pagine dettaglio del
-client web Jellyfin, ognuna attivabile/disattivabile separatamente:
+Personalizzazioni indipendenti per il client web di Jellyfin, ognuna attivabile e disattivabile separatamente dalla pagina di configurazione del plugin.
 
-- **Barra dei generi** — barra orizzontale filtrabile, con griglia poster
-  dei film per genere, ordinati per data di uscita.
-- **Righe per studio/piattaforma** — righe espandibili per diversi studi
-- **Prossimo episodio** — su una pagina di dettaglio serie/stagione,
-  mostra "Prossimo episodio il ..." leggendo la data dalla tua istanza
-  Sonarr (chiave API mai esposta al browser).
+---
+
+## Funzionalità
+
+| Funzione | Descrizione |
+|---|---|
+| **Barra dei generi** | Barra orizzontale filtrabile con griglia poster per genere, ordinati per data di uscita |
+| **Righe per studio/piattaforma** | Righe espandibili per studio e piattaforma (Netflix, Prime, Apple TV+...) |
+| **Prossimo episodio** | Mostra *"Prossimo episodio il ..."* sulle pagine serie/stagione, leggendo la data da Sonarr |
+| **Popup stagioni** | Selettore stagioni con griglia episodi a scorrimento, segno automatico puntate precedenti e pulsante "Segna stagione come vista" |
+| **Chat** | Chat generale tra tutti gli utenti del server, accessibile dal menu laterale |
+| **Top 10 tendenze** | Banner in cima alla Home con i 10 titoli più popolari del momento (richiede API key TMDB gratuita) |
+
+---
 
 ## Requisiti
 
-- Jellyfin 10.11.x
-- Plugin File Transformation installato e caricato
-- Per "prossimo episodio": un'istanza Sonarr raggiungibile dal server
-  Jellyfin, con relativa API key (Sonarr → Impostazioni → Generale)
+- Jellyfin 10.11.x o 12.0.x
+- Plugin [File Transformation](https://github.com/nicknick85/jellyfin-plugin-file-transformation) installato e attivo
+- *(opzionale)* Istanza Sonarr raggiungibile dal server, per la funzione "Prossimo episodio"
+- *(opzionale)* API key TMDB gratuita, per la funzione "Top 10 tendenze"
+
+---
 
 ## Installazione
 
-Dashboard → Plugins → Repositories → + → incolla:
+Vai su `Dashboard → Plugin → Repository → +` e incolla l'URL corretto per la tua versione:
 
-**Jellyfin 12.0.x**
+| Versione Jellyfin | URL Repository |
+|---|---|
+| 10.11.x | `https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/manifest.json` |
+| 12.0.x | `https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/manifest.json` |
 
-Dashboard → Plugins → Repositories → + → incolla:
+Poi `Catalogo → General → Owlfin → Installa` e riavvia Jellyfin.
 
-https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/manifest.json
-
-**Jellyfin 11.0.x**
-
-https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/manifest.json
-
-Poi Catalog → General → Owlfin → Install → riavvia Jellyfin.
+---
 
 ## Configurazione
 
-Dashboard → Plugins → Owlfin: tre checkbox indipendenti (una per
-funzione) più URL e API key di Sonarr. Riavvia Jellyfin dopo aver
-cambiato qualsiasi opzione.
+`Dashboard → Plugin → Owlfin`
 
-## Aggiornamenti e info
+- Attiva o disattiva ogni funzione con le relative checkbox
+- Inserisci URL e API key di Sonarr per la funzione "Prossimo episodio"
+- Inserisci la API key TMDB per la funzione "Top 10 tendenze"
 
-Le nuove versioni compaiono automaticamente in Dashboard → Plugins una
-volta pubblicate nel manifest — nessuna azione manuale richiesta.
+> Riavvia Jellyfin dopo aver modificato qualsiasi impostazione.
 
+---
 
+## Aggiornamenti
 
+Le nuove versioni compaiono automaticamente in `Dashboard → Plugin` non appena vengono pubblicate — nessuna azione manuale richiesta.
 
+---
 
+## Crediti
 
-CREDITI
-
-2 funzioni su 3 provengono dalle repo di  https://github.com/Snook-sudo, senza la sua repo non sarebbe stato possibile integrare queste sue funzioni.
+Due delle funzionalità di questo plugin sono basate sul lavoro disponibile su [github.com/Snook-sudo](https://github.com/Snook-sudo).
