@@ -30,10 +30,10 @@
     const TMDB_API_KEY = window.__owlfin_tmdb_key__ || '';
     const TMDB_LANG = 'it-IT';
 
-    const CACHE_KEY = 'owlhub_trending_now_cache_v3';
+    const CACHE_KEY = 'owlhub_trending_now_cache_v4';
     const TRAILER_CACHE_PREFIX = 'owlhub_trailer_it_v1_';
 
-    const CACHE_HOURS = 24 * 7;
+    const CACHE_HOURS = 24;
 
     const SECTION_TITLE = 'Di Tendenza Ora';
     const KICKER_TEXT = 'INIZIA A GUARDARE';
@@ -96,15 +96,20 @@
     // CACHE
     // =====================================================
 
+    function todayKey() {
+        const d = new Date();
+        return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    }
+
     function getCache() {
         try {
             const raw = localStorage.getItem(CACHE_KEY);
             if (!raw) return null;
 
             const data = JSON.parse(raw);
-            const ageHours = (Date.now() - data.timestamp) / 36e5;
 
-            if (ageHours > CACHE_HOURS) return null;
+            // Invalida se il giorno è cambiato (aggiornamento giornaliero TMDB)
+            if (data.day !== todayKey()) return null;
 
             return data.items;
         } catch (e) {
@@ -116,7 +121,7 @@
     function setCache(items) {
         try {
             localStorage.setItem(CACHE_KEY, JSON.stringify({
-                timestamp: Date.now(),
+                day: todayKey(),
                 items
             }));
         } catch (e) {
