@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.4.1.0",
+                "changelog": "2.4.1.0: rimosso Banner Top 10 dalla pagina impostazioni.\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.4.1.0.zip",
+                "checksum": "ce2fec58b7a137c10f150ef2463fcde3",
+                "timestamp": "2026-09-26T12:10:00Z"
+            },
+            {
                 "version": "2.4.0.0",
                 "changelog": "2.4.0.0: aggiunta sezione 'Di Tendenza Ora' in Home (trending.js); rinominati popup10-1.js -> seasons.js e topclaude2-1.js -> trending.js; API key TMDB non più hardcoded nel sorgente JS.\n",
                 "targetAbi": "12.0.0.0",
