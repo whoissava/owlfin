@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.6.0.0",
+                "changelog": "1.6.0.0: aggiunto popup stagioni con griglia episodi a scorrimento, segno automatico puntate precedenti e pulsante segna stagione come vista; attivabile separatamente dalle altre funzioni.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.6.0.0.zip",
+                "checksum": "719d1ff08690d47ee107460c015dca05",
+                "timestamp": "2026-09-26T08:12:35Z"
+            },
+            {
                 "version": "1.5.0.0",
                 "changelog": "1.5.0.0: allineata alla 2.2.0.0 (stesso seasons.js): selettore stagioni/episodi con segna come visto automatico.\n",
                 "targetAbi": "10.11.0.0",
