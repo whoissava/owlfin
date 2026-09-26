@@ -22,6 +22,7 @@ public class PluginConfiguration : BasePluginConfiguration
         SonarrUrl = string.Empty;
         SonarrApiKey = string.Empty;
         PopupEnabled = true;
+        TrendingClientEnabled = false;
     }
 
     /// <summary>
@@ -92,4 +93,11 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Restart Jellyfin after changing this.
     /// </summary>
     public bool PopupEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the client-side trending
+    /// section (trending.js) is injected into the web client home page.
+    /// Requires a valid TmdbApiKey. Restart Jellyfin after changing this.
+    /// </summary>
+    public bool TrendingClientEnabled { get; set; }
 }

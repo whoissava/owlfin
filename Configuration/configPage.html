@@ -85,6 +85,19 @@
                         </div>
                     </div>
 
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input id="TrendingClientEnabled" name="TrendingClientEnabled" type="checkbox" is="emby-checkbox" />
+                            <span>Sezione "Di Tendenza Ora" in Home</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Aggiunge una sezione con i titoli di tendenza TMDB presenti
+                            nella tua libreria. Long press su una card apre il trailer
+                            italiano. Richiede una API key TMDB valida. Riavvia Jellyfin
+                            dopo aver cambiato.
+                        </div>
+                    </div>
+
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="SonarrUrl">URL Sonarr</label>
                         <input id="SonarrUrl" name="SonarrUrl" type="text" is="emby-input" placeholder="http://localhost:8989" />
@@ -141,6 +154,7 @@
                         document.querySelector('#GenresEnabled').checked = config.GenresEnabled;
                         document.querySelector('#ChatEnabled').checked = config.ChatEnabled;
                         document.querySelector('#PopupEnabled').checked = config.PopupEnabled;
+                        document.querySelector('#TrendingClientEnabled').checked = config.TrendingClientEnabled;
                         document.querySelector('#TrendingEnabled').checked = config.TrendingEnabled;
                         document.querySelector('#TmdbApiKey').value = config.TmdbApiKey || '';
                         document.querySelector('#SonarrUrl').value = config.SonarrUrl || '';
@@ -159,6 +173,7 @@
                         config.GenresEnabled = document.querySelector('#GenresEnabled').checked;
                         config.ChatEnabled = document.querySelector('#ChatEnabled').checked;
                         config.PopupEnabled = document.querySelector('#PopupEnabled').checked;
+                        config.TrendingClientEnabled = document.querySelector('#TrendingClientEnabled').checked;
                         config.TrendingEnabled = document.querySelector('#TrendingEnabled').checked;
                         config.TmdbApiKey = document.querySelector('#TmdbApiKey').value;
                         config.SonarrUrl = document.querySelector('#SonarrUrl').value;

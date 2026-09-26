@@ -49,8 +49,10 @@
     <EmbeddedResource Include="Web\genres.js" />
     <None Remove="Web\chat.js" />
     <EmbeddedResource Include="Web\chat.js" />
-    <None Remove="Web\popup10-1.js" />
-    <EmbeddedResource Include="Web\popup10-1.js" />
+    <None Remove="Web\seasons.js" />
+    <EmbeddedResource Include="Web\seasons.js" />
+    <None Remove="Web\trending.js" />
+    <EmbeddedResource Include="Web\trending.js" />
   </ItemGroup>
 
 </Project>

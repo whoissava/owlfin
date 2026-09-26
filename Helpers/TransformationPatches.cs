@@ -55,7 +55,16 @@ public static class TransformationPatches
 
         if (config.PopupEnabled)
         {
-            scripts += BuildScriptElement("Owlfin-Popup", "Web.popup10-1.js");
+            scripts += BuildScriptElement("Owlfin-Seasons", "Web.seasons.js");
+        }
+
+        if (config.TrendingClientEnabled && !string.IsNullOrEmpty(config.TmdbApiKey))
+        {
+            // Inietta la chiave TMDB come variabile globale prima dello script,
+            // così trending.js la legge da window.__owlfin_tmdb_key__ senza
+            // che la chiave venga mai hardcoded nel sorgente JS del plugin.
+            string keyScript = $"<script>window.__owlfin_tmdb_key__={System.Text.Json.JsonSerializer.Serialize(config.TmdbApiKey)};</script>";
+            scripts += keyScript + BuildScriptElement("Owlfin-Trending", "Web.trending.js");
         }
 
         if (string.IsNullOrEmpty(scripts))
