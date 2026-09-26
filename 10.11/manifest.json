@@ -9,6 +9,14 @@
         "versions": [
             {
                 "version": "1.6.0.0",
+                "changelog": "1.6.0.0: fix iniezione popup stagioni con griglia episodi a scorrimento.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.6.0.0.zip",
+                "checksum": "9af2638c34262c4947f35a785edc0423",
+                "timestamp": "2026-09-26T08:17:53Z"
+            },
+            {
+                "version": "1.6.0.0",
                 "changelog": "1.6.0.0: aggiunto popup stagioni con griglia episodi a scorrimento, segno automatico puntate precedenti e pulsante segna stagione come vista; attivabile separatamente dalle altre funzioni.\n",
                 "targetAbi": "10.11.0.0",
                 "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.6.0.0.zip",

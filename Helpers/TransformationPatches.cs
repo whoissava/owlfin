@@ -53,6 +53,11 @@ public static class TransformationPatches
             scripts += BuildScriptElement("Owlfin-Chat", "Web.chat.js");
         }
 
+        if (config.PopupEnabled)
+        {
+            scripts += BuildScriptElement("Owlfin-Popup", "Web.popup10-1.js");
+        }
+
         if (string.IsNullOrEmpty(scripts))
         {
             return contents;

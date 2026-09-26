@@ -49,6 +49,8 @@
     <EmbeddedResource Include="Web\genres.js" />
     <None Remove="Web\chat.js" />
     <EmbeddedResource Include="Web\chat.js" />
+    <None Remove="Web\popup10-1.js" />
+    <EmbeddedResource Include="Web\popup10-1.js" />
   </ItemGroup>
 
 </Project>

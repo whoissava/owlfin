@@ -21,6 +21,7 @@ public class PluginConfiguration : BasePluginConfiguration
         SonarrEnabled = false;
         SonarrUrl = string.Empty;
         SonarrApiKey = string.Empty;
+        PopupEnabled = true;
     }
 
     /// <summary>
@@ -84,4 +85,11 @@ public class PluginConfiguration : BasePluginConfiguration
     /// from <see cref="Api.SonarrController"/> -- never sent to the browser.
     /// </summary>
     public string SonarrApiKey { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the season popup
+    /// (popup10-1.js) is injected into the web client's series detail page.
+    /// Restart Jellyfin after changing this.
+    /// </summary>
+    public bool PopupEnabled { get; set; }
 }
