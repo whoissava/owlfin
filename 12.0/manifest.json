@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.4.3.0",
+                "changelog": "2.4.3.0: fix selettore stagioni tagliato al ritorno dalla pagina episodio (keepInPlace interrotto se hideEl disconnesso, applyPlacement non agisce senza trama nel DOM).\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.4.3.0.zip",
+                "checksum": "da369c62fcbc46159c8c057b2014a6c0",
+                "timestamp": "2026-09-27T13:26:46Z"
+            },
+            {
                 "version": "2.4.2.0",
                 "changelog": "2.4.2.0: cache trending aggiornata ogni giorno a mezzanotte invece che ogni 7 giorni.\n",
                 "targetAbi": "12.0.0.0",

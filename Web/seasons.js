@@ -407,6 +407,7 @@
 
     const stops = [hideEl, section, overview, nextUp].filter(Boolean);
     const candidates = findAnchorCandidates(scope, stops, overview);
+    if (!candidates.length && !overview) return;
     const target = candidates.length ? candidates[0] : { el: hideEl, reason: 'fallback-stagioni' };
 
     const parent = target.el.parentNode;
@@ -440,7 +441,7 @@
     };
     run();
     const iv = setInterval(() => {
-      if (!section.isConnected || Date.now() - start > CONFIG.repositionTimeoutMs) {
+      if (!section.isConnected || !hideEl.isConnected || Date.now() - start > CONFIG.repositionTimeoutMs) {
         clearInterval(iv);
         return;
       }
