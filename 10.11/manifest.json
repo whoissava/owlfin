@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.7.6.0",
+                "changelog": "1.7.6.0: fix flash contenuti default nella pagina di ricerca (nasconde lista fino a poster pronti).\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.7.6.0.zip",
+                "checksum": "556dc780dbad5560be329f13a5d49584",
+                "timestamp": "2026-09-30T12:57:08Z"
+            },
+            {
                 "version": "1.7.5.0",
                 "changelog": "1.7.5.0: griglia poster casuali nella pagina di ricerca (search.js).\n",
                 "targetAbi": "10.11.0.0",

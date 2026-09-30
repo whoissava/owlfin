@@ -29,6 +29,10 @@
                 padding: 8px 4px !important;
             }
             #searchPage .searchSuggestionsList > div { margin: 0 !important; }
+            #searchPage.owlfin-search-loading .searchSuggestionsList {
+                visibility: hidden !important;
+                pointer-events: none !important;
+            }
             #searchPage .searchSuggestionsList a.button-link {
                 display: block !important;
                 width: ${CONFIG.cardWidth}px !important;
@@ -99,6 +103,8 @@
         });
         list.appendChild(fragment);
         applyPosters();
+        const searchPage = document.getElementById('searchPage');
+        if (searchPage) searchPage.classList.remove('owlfin-search-loading');
         setTimeout(() => { rebuilding = false; }, 50);
     }
 
@@ -125,7 +131,11 @@
 
     function onSearchPageMaybeVisible() {
         const visible = isSearchPageVisible();
-        if (visible && !wasVisible) setTimeout(refreshSuggestions, 150);
+        if (visible && !wasVisible) {
+            const el = document.getElementById('searchPage');
+            if (el) el.classList.add('owlfin-search-loading');
+            setTimeout(refreshSuggestions, 50);
+        }
         wasVisible = visible;
     }
 
