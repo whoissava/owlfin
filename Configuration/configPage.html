@@ -98,6 +98,18 @@
                         </div>
                     </div>
 
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input id="SearchGridEnabled" name="SearchGridEnabled" type="checkbox" is="emby-checkbox" />
+                            <span>Griglia poster nei suggerimenti di ricerca</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Sostituisce i suggerimenti testuali nella pagina di ricerca
+                            con una griglia di locandine casuali dalla tua libreria.
+                            Riavvia Jellyfin dopo aver cambiato.
+                        </div>
+                    </div>
+
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="SonarrUrl">URL Sonarr</label>
                         <input id="SonarrUrl" name="SonarrUrl" type="text" is="emby-input" placeholder="http://localhost:8989" />
@@ -144,6 +156,7 @@
                         document.querySelector('#ChatEnabled').checked = config.ChatEnabled;
                         document.querySelector('#PopupEnabled').checked = config.PopupEnabled;
                         document.querySelector('#TrendingClientEnabled').checked = config.TrendingClientEnabled;
+                        document.querySelector('#SearchGridEnabled').checked = config.SearchGridEnabled;
                         document.querySelector('#TmdbApiKey').value = config.TmdbApiKey || '';
                         document.querySelector('#SonarrUrl').value = config.SonarrUrl || '';
                         document.querySelector('#SonarrApiKey').value = config.SonarrApiKey || '';
@@ -162,6 +175,7 @@
                         config.ChatEnabled = document.querySelector('#ChatEnabled').checked;
                         config.PopupEnabled = document.querySelector('#PopupEnabled').checked;
                         config.TrendingClientEnabled = document.querySelector('#TrendingClientEnabled').checked;
+                        config.SearchGridEnabled = document.querySelector('#SearchGridEnabled').checked;
                         config.TmdbApiKey = document.querySelector('#TmdbApiKey').value;
                         config.SonarrUrl = document.querySelector('#SonarrUrl').value;
                         config.SonarrApiKey = document.querySelector('#SonarrApiKey').value;

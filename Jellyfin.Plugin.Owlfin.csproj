@@ -53,6 +53,8 @@
     <EmbeddedResource Include="Web\seasons.js" />
     <None Remove="Web\trending.js" />
     <EmbeddedResource Include="Web\trending.js" />
+    <None Remove="Web\search.js" />
+    <EmbeddedResource Include="Web\search.js" />
   </ItemGroup>
 
 </Project>

@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.4.5.0",
+                "changelog": "2.4.5.0: griglia poster casuali nella pagina di ricerca (search.js).\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.4.5.0.zip",
+                "checksum": "fb6d7e24d4d45a3fdd691244acc9e979",
+                "timestamp": "2026-09-30T11:56:56Z"
+            },
+            {
                 "version": "2.4.4.0",
                 "changelog": "2.4.4.0: fix sezione trending che sparisce dopo ritorno in foreground (visibilitychange).\n",
                 "targetAbi": "12.0.0.0",

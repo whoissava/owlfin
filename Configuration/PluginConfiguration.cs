@@ -23,6 +23,7 @@ public class PluginConfiguration : BasePluginConfiguration
         SonarrApiKey = string.Empty;
         PopupEnabled = true;
         TrendingClientEnabled = false;
+        SearchGridEnabled = true;
     }
 
     /// <summary>
@@ -100,4 +101,10 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Requires a valid TmdbApiKey. Restart Jellyfin after changing this.
     /// </summary>
     public bool TrendingClientEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the search suggestions
+    /// are replaced with a random poster grid (search.js).
+    /// </summary>
+    public bool SearchGridEnabled { get; set; }
 }

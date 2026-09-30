@@ -67,6 +67,11 @@ public static class TransformationPatches
             scripts += keyScript + BuildScriptElement("Owlfin-Trending", "Web.trending.js");
         }
 
+        if (config.SearchGridEnabled)
+        {
+            scripts += BuildScriptElement("Owlfin-Search", "Web.search.js");
+        }
+
         if (string.IsNullOrEmpty(scripts))
         {
             return contents;
