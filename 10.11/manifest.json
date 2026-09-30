@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.7.4.0",
+                "changelog": "1.7.4.0: fix sezione trending che sparisce dopo ritorno in foreground (visibilitychange).\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.7.4.0.zip",
+                "checksum": "d82c8f4951c36bd083273ea25f4be842",
+                "timestamp": "2026-09-30T07:57:30Z"
+            },
+            {
                 "version": "1.7.3.0",
                 "changelog": "1.7.3.0: fix selettore stagioni tagliato al ritorno dalla pagina episodio (keepInPlace interrotto se hideEl disconnesso, applyPlacement non agisce senza trama nel DOM).\n",
                 "targetAbi": "10.11.0.0",

@@ -954,4 +954,14 @@
     // Primo caricamento.
     setTimeout(init, 800);
 
+    // Quando l'app torna in foreground dopo essere stata in background,
+    // il browser sospende observer e timer: forziamo un nuovo init
+    // che reinietterà la sezione se nel frattempo è sparita dal DOM.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(init, 600);
+        }
+    });
+
 })();
