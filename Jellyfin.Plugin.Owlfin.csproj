@@ -39,6 +39,10 @@
   <ItemGroup>
     <None Remove="Configuration\configPage.html" />
     <EmbeddedResource Include="Configuration\configPage.html" />
+    <None Remove="Configuration\thumb.png" />
+    <EmbeddedResource Include="Configuration\thumb.png" />
+
+
     <None Remove="Web\categories.js" />
     <EmbeddedResource Include="Web\categories.js" />
     <None Remove="Web\studio.js" />

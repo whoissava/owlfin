@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.7.7.0",
+                "changelog": "1.7.7.0: aggiunta icona plugin.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.7.7.0.zip",
+                "checksum": "cd0f3f199af32dd18102da0daf685cf7",
+                "timestamp": "2026-10-01T08:42:26Z"
+            },
+            {
                 "version": "1.7.6.0",
                 "changelog": "1.7.6.0: fix flash contenuti default nella pagina di ricerca (nasconde lista fino a poster pronti).\n",
                 "targetAbi": "10.11.0.0",
