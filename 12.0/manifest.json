@@ -9,6 +9,14 @@
         "versions": [
             {
                 "version": "2.4.7.0",
+                "changelog": "2.4.7.0: rimossa icona plugin, fix csproj.\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.4.7.0.zip",
+                "checksum": "9b316a6b160710aae61a3dc58493dc53",
+                "timestamp": "2026-10-01T08:46:19Z"
+            },
+            {
+                "version": "2.4.7.0",
                 "changelog": "2.4.7.0: aggiunta icona plugin.\n",
                 "targetAbi": "12.0.0.0",
                 "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.4.7.0.zip",
