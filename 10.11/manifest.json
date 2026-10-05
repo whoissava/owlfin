@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.7.9.0",
+                "changelog": "1.7.9.0: UI impostazioni riorganizzata per sezioni, supporto i18n IT/EN, fix badge prossimo episodio persistente.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.7.9.0.zip",
+                "checksum": "35fcafd00e8600d3819ec6a41c28366d",
+                "timestamp": "2026-10-05T08:43:05Z"
+            },
+            {
                 "version": "1.7.7.0",
                 "changelog": "1.7.7.0: rimossa icona plugin, fix csproj.\n",
                 "targetAbi": "10.11.0.0",

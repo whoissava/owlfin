@@ -163,11 +163,16 @@
         return true;
     }
 
+    let ensureRetryTimer = null;
+
     function ensureBadge() {
         if (!currentId || !pendingEpisodes || !pendingEpisodes.length) return;
         const existing = document.getElementById("owlfin-next-episode");
-        if (!existing || existing.dataset.itemId !== currentId) {
-            renderBadge(currentId, pendingEpisodes);
+        if (existing && existing.dataset.itemId === currentId) return;
+        const ok = renderBadge(currentId, pendingEpisodes);
+        if (!ok) {
+            clearTimeout(ensureRetryTimer);
+            ensureRetryTimer = setTimeout(ensureBadge, 300);
         }
     }
 
@@ -224,5 +229,8 @@
 
     // Reti di sicurezza aggiuntive per navigazioni che il fetch-hook potesse perdere.
     window.addEventListener("hashchange", ensureBadge);
+    document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") ensureBadge();
+    });
     window.addEventListener("popstate", ensureBadge);
 })();

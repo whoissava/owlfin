@@ -8,182 +8,247 @@
         <div data-role="content">
             <div class="content-primary">
                 <form id="OwlfinConfigForm">
+
                     <div class="verticalSection">
-                        <h2>Owlfin</h2>
-                        <p>
-                            Tre personalizzazioni indipendenti per il client web. Ognuna si può
-                            attivare/disattivare separatamente.
+                        <h2 class="sectionTitle">Owlfin</h2>
+                        <p class="sectionTitle-cards">
+                            Personalizzazioni indipendenti per il client web Jellyfin.
+                            Riavvia Jellyfin dopo aver salvato qualsiasi modifica.
                         </p>
                     </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input id="CategoriesEnabled" name="CategoriesEnabled" type="checkbox" is="emby-checkbox" />
-                            <span>Barra dei generi (Categories)</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Barra orizzontale di generi filtrabile al tocco, con griglia poster
-                            dei film corrispondenti.
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle" data-i18n="owlfin_section_home">Home</h3>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input id="CategoriesEnabled" name="CategoriesEnabled" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="owlfin_categories_label">Barra dei generi</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="owlfin_categories_desc">
+                                Barra orizzontale di generi filtrabile al tocco, con griglia poster dei film corrispondenti. Richiede File Transformation.
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input id="StudiosEnabled" name="StudiosEnabled" type="checkbox" is="emby-checkbox" />
-                            <span>Righe per studio/piattaforma (Studio)</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Righe espandibili per Apple TV+, Prime Video, Hulu, Netflix, HBO Max,
-                            Disney+, Pixar e Adult Swim.
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input id="StudiosEnabled" name="StudiosEnabled" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="owlfin_studios_label">Righe per studio / piattaforma</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="owlfin_studios_desc">
+                                Righe espandibili per Apple TV+, Prime Video, Netflix, HBO Max, Disney+, Pixar e Adult Swim. Richiede File Transformation.
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input id="SonarrEnabled" name="SonarrEnabled" type="checkbox" is="emby-checkbox" />
-                            <span>Prossimo episodio (Sonarr)</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Mostra "Prossimo episodio il ..." sulla pagina di dettaglio di serie
-                            e stagioni, leggendo la data dalla tua istanza Sonarr. La chiave API
-                            resta sul server, non viene mai inviata al browser.
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input id="GenresEnabled" name="GenresEnabled" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="owlfin_genres_label">Overlay generi</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="owlfin_genres_desc">
+                                Overlay a schermo intero per sfogliare i generi con filtro Film/Serie TV, richiamabile dal menu laterale. Richiede File Transformation.
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input id="GenresEnabled" name="GenresEnabled" type="checkbox" is="emby-checkbox" />
-                            <span>Barra generi in stile Netflix (Genres)</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Overlay a schermo intero per sfogliare i generi disponibili, con
-                            filtro per Film/Serie TV, richiamabile dal menu laterale.
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input id="TrendingClientEnabled" name="TrendingClientEnabled" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="owlfin_trending_label">Di Tendenza Ora</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="owlfin_trending_desc">
+                                Sezione in Home con i titoli di tendenza TMDB presenti nella tua libreria. Long press su una card apre il trailer. Richiede API key TMDB.
+                            </div>
                         </div>
+
                     </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input id="ChatEnabled" name="ChatEnabled" type="checkbox" is="emby-checkbox" />
-                            <span>Chat generale tra utenti</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Overlay di chat con storico illimitato, raggiungibile dal menu
-                            laterale. I messaggi sono visibili a tutti gli utenti del server.
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle" data-i18n="owlfin_section_search">Ricerca</h3>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input id="SearchGridEnabled" name="SearchGridEnabled" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="owlfin_search_label">Griglia poster nei suggerimenti</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="owlfin_search_desc">
+                                Sostituisce i suggerimenti testuali con una griglia di locandine casuali dalla tua libreria.
+                            </div>
                         </div>
+
                     </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input id="PopupEnabled" name="PopupEnabled" type="checkbox" is="emby-checkbox" />
-                            <span>Popup stagioni con griglia episodi</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Sostituisce la sezione Stagioni nativa con un selettore a popup
-                            e una griglia episodi orizzontale a scorrimento.
-                            Include segno automatico delle puntate precedenti e pulsante
-                            "Segna stagione come vista". Riavvia Jellyfin dopo aver cambiato.
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle" data-i18n="owlfin_section_detail">Dettaglio serie</h3>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input id="PopupEnabled" name="PopupEnabled" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="owlfin_popup_label">Selettore stagioni</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="owlfin_popup_desc">
+                                Sostituisce la sezione Stagioni nativa con un selettore a popup e griglia episodi orizzontale a scorrimento. Include segno automatico puntate precedenti.
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input id="TrendingClientEnabled" name="TrendingClientEnabled" type="checkbox" is="emby-checkbox" />
-                            <span>Sezione "Di Tendenza Ora" in Home</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Aggiunge una sezione con i titoli di tendenza TMDB presenti
-                            nella tua libreria. Long press su una card apre il trailer
-                            italiano. Richiede una API key TMDB valida. Riavvia Jellyfin
-                            dopo aver cambiato.
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input id="SonarrEnabled" name="SonarrEnabled" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="owlfin_sonarr_label">Prossimo episodio (Sonarr)</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="owlfin_sonarr_desc">
+                                Mostra "Prossimo episodio il ..." sulla pagina di dettaglio serie e stagioni leggendo la data da Sonarr. La chiave API non viene mai inviata al browser.
+                            </div>
                         </div>
+
                     </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input id="SearchGridEnabled" name="SearchGridEnabled" type="checkbox" is="emby-checkbox" />
-                            <span>Griglia poster nei suggerimenti di ricerca</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Sostituisce i suggerimenti testuali nella pagina di ricerca
-                            con una griglia di locandine casuali dalla tua libreria.
-                            Riavvia Jellyfin dopo aver cambiato.
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle" data-i18n="owlfin_section_social">Social</h3>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input id="ChatEnabled" name="ChatEnabled" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="owlfin_chat_label">Chat tra utenti</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="owlfin_chat_desc">
+                                Overlay di chat con storico illimitato, raggiungibile dal menu laterale. Visibile a tutti gli utenti del server.
+                            </div>
                         </div>
+
                     </div>
 
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="SonarrUrl">URL Sonarr</label>
-                        <input id="SonarrUrl" name="SonarrUrl" type="text" is="emby-input" placeholder="http://localhost:8989" />
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle" data-i18n="owlfin_section_api">Credenziali API</h3>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="SonarrUrl" data-i18n="owlfin_sonarr_url">URL Sonarr</label>
+                            <input id="SonarrUrl" name="SonarrUrl" type="text" is="emby-input" placeholder="http://localhost:8989" />
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="SonarrApiKey" data-i18n="owlfin_sonarr_key">API key Sonarr</label>
+                            <input id="SonarrApiKey" name="SonarrApiKey" type="password" is="emby-input" />
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="TmdbApiKey" data-i18n="owlfin_tmdb_key">API key TMDB</label>
+                            <input id="TmdbApiKey" name="TmdbApiKey" type="password" is="emby-input" />
+                            <div class="fieldDescription" data-i18n="owlfin_tmdb_desc">
+                                Richiesta da "Di Tendenza Ora". Gratuita su themoviedb.org.
+                            </div>
+                        </div>
+
                     </div>
 
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="SonarrApiKey">API key Sonarr</label>
-                        <input id="SonarrApiKey" name="SonarrApiKey" type="password" is="emby-input" />
-                    </div>
-
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="TmdbApiKey">API key TMDB</label>
-                        <input id="TmdbApiKey" name="TmdbApiKey" type="password" is="emby-input" />
-                    </div>
-
-                    <div class="fieldDescription">
-                        Riavvia Jellyfin dopo aver cambiato una qualsiasi di queste opzioni.
-                        Categories/Studio/Sonarr richiedono il plugin File Transformation
-                        installato -- è lui che inietta davvero gli script in index.html.
-                    </div>
-                    <br />
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block">
-                            <span>Salva</span>
+                            <span data-i18n="owlfin_save">Salva</span>
                         </button>
                     </div>
+
                 </form>
             </div>
         </div>
+
         <script type="text/javascript">
-            var OwlfinConfig = {
-                pluginUniqueId: 'b13839a6-5916-4f75-aed9-331901b8e3e6'
+            var OWLFIN_I18N = {
+                it: {
+                    owlfin_section_home:     'Home',
+                    owlfin_categories_label: 'Barra dei generi',
+                    owlfin_categories_desc:  'Barra orizzontale di generi filtrabile al tocco, con griglia poster dei film corrispondenti. Richiede File Transformation.',
+                    owlfin_studios_label:    'Righe per studio / piattaforma',
+                    owlfin_studios_desc:     'Righe espandibili per Apple TV+, Prime Video, Netflix, HBO Max, Disney+, Pixar e Adult Swim. Richiede File Transformation.',
+                    owlfin_genres_label:     'Overlay generi',
+                    owlfin_genres_desc:      'Overlay a schermo intero per sfogliare i generi con filtro Film/Serie TV, richiamabile dal menu laterale. Richiede File Transformation.',
+                    owlfin_trending_label:   'Di Tendenza Ora',
+                    owlfin_trending_desc:    'Sezione in Home con i titoli di tendenza TMDB presenti nella tua libreria. Long press su una card apre il trailer. Richiede API key TMDB.',
+                    owlfin_section_search:   'Ricerca',
+                    owlfin_search_label:     'Griglia poster nei suggerimenti',
+                    owlfin_search_desc:      'Sostituisce i suggerimenti testuali con una griglia di locandine casuali dalla tua libreria.',
+                    owlfin_section_detail:   'Dettaglio serie',
+                    owlfin_popup_label:      'Selettore stagioni',
+                    owlfin_popup_desc:       'Sostituisce la sezione Stagioni nativa con un selettore a popup e griglia episodi orizzontale a scorrimento. Include segno automatico puntate precedenti.',
+                    owlfin_sonarr_label:     'Prossimo episodio (Sonarr)',
+                    owlfin_sonarr_desc:      'Mostra "Prossimo episodio il ..." sulla pagina di dettaglio serie e stagioni leggendo la data da Sonarr. La chiave API non viene mai inviata al browser.',
+                    owlfin_section_social:   'Social',
+                    owlfin_chat_label:       'Chat tra utenti',
+                    owlfin_chat_desc:        'Overlay di chat con storico illimitato, raggiungibile dal menu laterale. Visibile a tutti gli utenti del server.',
+                    owlfin_section_api:      'Credenziali API',
+                    owlfin_sonarr_url:       'URL Sonarr',
+                    owlfin_sonarr_key:       'API key Sonarr',
+                    owlfin_tmdb_key:         'API key TMDB',
+                    owlfin_tmdb_desc:        'Richiesta da "Di Tendenza Ora". Gratuita su themoviedb.org.',
+                    owlfin_save:             'Salva'
+                },
+                en: {
+                    owlfin_section_home:     'Home',
+                    owlfin_categories_label: 'Genre bar',
+                    owlfin_categories_desc:  'Horizontal genre bar filterable by tap, with a poster grid of matching movies. Requires File Transformation.',
+                    owlfin_studios_label:    'Studio / platform rows',
+                    owlfin_studios_desc:     'Expandable rows for Apple TV+, Prime Video, Netflix, HBO Max, Disney+, Pixar and Adult Swim. Requires File Transformation.',
+                    owlfin_genres_label:     'Genre overlay',
+                    owlfin_genres_desc:      'Full-screen overlay to browse genres with a Movie/Series filter, accessible from the side menu. Requires File Transformation.',
+                    owlfin_trending_label:   'Trending Now',
+                    owlfin_trending_desc:    'Home section showing trending TMDB titles in your library. Long press on a card opens the trailer. Requires TMDB API key.',
+                    owlfin_section_search:   'Search',
+                    owlfin_search_label:     'Poster grid in search suggestions',
+                    owlfin_search_desc:      'Replaces text suggestions with a random poster grid from your library.',
+                    owlfin_section_detail:   'Series detail',
+                    owlfin_popup_label:      'Season selector',
+                    owlfin_popup_desc:       'Replaces the native Seasons section with a popup selector and horizontal episode grid. Includes auto-mark of previous episodes.',
+                    owlfin_sonarr_label:     'Next episode (Sonarr)',
+                    owlfin_sonarr_desc:      'Shows "Next episode on ..." on series and season detail pages by reading the date from Sonarr. The API key is never sent to the browser.',
+                    owlfin_section_social:   'Social',
+                    owlfin_chat_label:       'User chat',
+                    owlfin_chat_desc:        'Chat overlay with unlimited history, accessible from the side menu. Visible to all server users.',
+                    owlfin_section_api:      'API credentials',
+                    owlfin_sonarr_url:       'Sonarr URL',
+                    owlfin_sonarr_key:       'Sonarr API key',
+                    owlfin_tmdb_key:         'TMDB API key',
+                    owlfin_tmdb_desc:        'Required for "Trending Now". Free at themoviedb.org.',
+                    owlfin_save:             'Save'
+                }
             };
+
+            function owlfinApplyI18n() {
+                var lang = (navigator.language || 'it').split('-')[0];
+                var strings = OWLFIN_I18N[lang] || OWLFIN_I18N['en'];
+                document.querySelectorAll('[data-i18n]').forEach(function (el) {
+                    var key = el.getAttribute('data-i18n');
+                    if (strings[key]) el.textContent = strings[key];
+                });
+            }
+
+            var OwlfinConfig = { pluginUniqueId: 'b13839a6-5916-4f75-aed9-331901b8e3e6' };
+            var IDS = ['CategoriesEnabled','StudiosEnabled','GenresEnabled','TrendingClientEnabled','SearchGridEnabled','PopupEnabled','SonarrEnabled','ChatEnabled'];
+            function q(id) { return document.querySelector('#' + id); }
 
             document.querySelector('#OwlfinConfigPage')
                 .addEventListener('pageshow', function () {
+                    owlfinApplyI18n();
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(OwlfinConfig.pluginUniqueId).then(function (config) {
-                        document.querySelector('#CategoriesEnabled').checked = config.CategoriesEnabled;
-                        document.querySelector('#StudiosEnabled').checked = config.StudiosEnabled;
-                        document.querySelector('#SonarrEnabled').checked = config.SonarrEnabled;
-                        document.querySelector('#GenresEnabled').checked = config.GenresEnabled;
-                        document.querySelector('#ChatEnabled').checked = config.ChatEnabled;
-                        document.querySelector('#PopupEnabled').checked = config.PopupEnabled;
-                        document.querySelector('#TrendingClientEnabled').checked = config.TrendingClientEnabled;
-                        document.querySelector('#SearchGridEnabled').checked = config.SearchGridEnabled;
-                        document.querySelector('#TmdbApiKey').value = config.TmdbApiKey || '';
-                        document.querySelector('#SonarrUrl').value = config.SonarrUrl || '';
-                        document.querySelector('#SonarrApiKey').value = config.SonarrApiKey || '';
+                        IDS.forEach(function (id) { q(id).checked = !!config[id]; });
+                        q('TmdbApiKey').value   = config.TmdbApiKey   || '';
+                        q('SonarrUrl').value    = config.SonarrUrl    || '';
+                        q('SonarrApiKey').value = config.SonarrApiKey || '';
                         Dashboard.hideLoadingMsg();
                     });
                 });
 
             document.querySelector('#OwlfinConfigForm')
                 .addEventListener('submit', function (e) {
+                    e.preventDefault();
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(OwlfinConfig.pluginUniqueId).then(function (config) {
-                        config.CategoriesEnabled = document.querySelector('#CategoriesEnabled').checked;
-                        config.StudiosEnabled = document.querySelector('#StudiosEnabled').checked;
-                        config.SonarrEnabled = document.querySelector('#SonarrEnabled').checked;
-                        config.GenresEnabled = document.querySelector('#GenresEnabled').checked;
-                        config.ChatEnabled = document.querySelector('#ChatEnabled').checked;
-                        config.PopupEnabled = document.querySelector('#PopupEnabled').checked;
-                        config.TrendingClientEnabled = document.querySelector('#TrendingClientEnabled').checked;
-                        config.SearchGridEnabled = document.querySelector('#SearchGridEnabled').checked;
-                        config.TmdbApiKey = document.querySelector('#TmdbApiKey').value;
-                        config.SonarrUrl = document.querySelector('#SonarrUrl').value;
-                        config.SonarrApiKey = document.querySelector('#SonarrApiKey').value;
+                        IDS.forEach(function (id) { config[id] = q(id).checked; });
+                        config.TmdbApiKey   = q('TmdbApiKey').value;
+                        config.SonarrUrl    = q('SonarrUrl').value;
+                        config.SonarrApiKey = q('SonarrApiKey').value;
                         ApiClient.updatePluginConfiguration(OwlfinConfig.pluginUniqueId, config).then(function (result) {
                             Dashboard.processPluginConfigurationUpdateResult(result);
                         });
                     });
-                    e.preventDefault();
                     return false;
                 });
         </script>
