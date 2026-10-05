@@ -7,6 +7,59 @@
  * @license GPL-3.0
  */
 (function () {
+    // ── i18n ────────────────────────────────────────────────────────
+    const _lang = (navigator.language || 'it').split('-')[0];
+    const _i18n = {
+        it: {
+            nextEpisode:       'Prossimo episodio',
+            nextEpisodes:      'Prossimi episodi',
+            moreUpcoming:      'in arrivo',
+            close:             'Chiudi',
+            seen:              'Visto',
+            episode:           'PUNTATA',
+            markSeasonWatched: 'Segna stagione come vista',
+            season:            'Stagione',
+            chatTitle:         'Chat',
+            chatPlaceholder:   'Scrivi un messaggio...',
+            trendingTitle:     'Di Tendenza Ora',
+            trendingKicker:    'INIZIA A GUARDARE',
+            anchorMovies:      ['Film aggiunti di recente','Film recenti'],
+            continueWatching:  'Prossimo',
+            notAuthenticated:  'Non autenticato',
+            noGenres:          'Nessun genere trovato',
+            movies:            'Film',
+            series:            'Serie TV',
+            film:              'FILM',
+            serieLabel:        'SERIE',
+            loading:           'Caricamento...',
+        },
+        en: {
+            nextEpisode:       'Next episode',
+            nextEpisodes:      'Upcoming episodes',
+            moreUpcoming:      'upcoming',
+            close:             'Close',
+            seen:              'Watched',
+            episode:           'EPISODE',
+            markSeasonWatched: 'Mark season as watched',
+            season:            'Season',
+            chatTitle:         'Chat',
+            chatPlaceholder:   'Write a message...',
+            trendingTitle:     'Trending Now',
+            trendingKicker:    'START WATCHING',
+            anchorMovies:      ['Recently added movies','Recent movies'],
+            continueWatching:  'Next Up',
+            notAuthenticated:  'Not authenticated',
+            noGenres:          'No genres found',
+            movies:            'Movies',
+            series:            'TV Shows',
+            film:              'MOVIE',
+            serieLabel:        'SERIES',
+            loading:           'Loading...',
+        }
+    };
+    const t = _i18n[_lang] || _i18n['en'];
+
+
     "use strict";
 
     function getCreds() {
@@ -188,8 +241,8 @@
         overlay.innerHTML = `
             <div id="gb-nf-tabs">
                 <button class="gb-nf-tab active" data-type="All">Tutto</button>
-                <button class="gb-nf-tab" data-type="Movie">Film</button>
-                <button class="gb-nf-tab" data-type="Series">Serie TV</button>
+                <button class="gb-nf-tab" data-type="Movie">${t.movies}</button>
+                <button class="gb-nf-tab" data-type="Series">${t.series}</button>
             </div>
             <div id="gb-nf-list"><div class="gb-nf-spinner"></div></div>
             <div id="gb-nf-close-wrap"><button id="gb-nf-close">✕</button></div>
@@ -235,7 +288,7 @@
 
         const creds = getCreds();
         if (!creds.token) {
-            list.innerHTML = '<p class="gb-nf-error">Non autenticato</p>';
+            list.innerHTML = `<p class="gb-nf-error">${t.notAuthenticated}</p>`;
             return;
         }
 
@@ -252,7 +305,7 @@
             const genres = j.Items || [];
 
             if (!genres.length) {
-                list.innerHTML = '<p class="gb-nf-error">Nessun genere trovato</p>';
+                list.innerHTML = `<p class="gb-nf-error">${t.noGenres}</p>`;
                 return;
             }
 

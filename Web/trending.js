@@ -23,6 +23,59 @@
  */
 
 (function () {
+    // ── i18n ────────────────────────────────────────────────────────
+    const _lang = (navigator.language || 'it').split('-')[0];
+    const _i18n = {
+        it: {
+            nextEpisode:       'Prossimo episodio',
+            nextEpisodes:      'Prossimi episodi',
+            moreUpcoming:      'in arrivo',
+            close:             'Chiudi',
+            seen:              'Visto',
+            episode:           'PUNTATA',
+            markSeasonWatched: 'Segna stagione come vista',
+            season:            'Stagione',
+            chatTitle:         'Chat',
+            chatPlaceholder:   'Scrivi un messaggio...',
+            trendingTitle:     'Di Tendenza Ora',
+            trendingKicker:    'INIZIA A GUARDARE',
+            anchorMovies:      ['Film aggiunti di recente','Film recenti'],
+            continueWatching:  'Prossimo',
+            notAuthenticated:  'Non autenticato',
+            noGenres:          'Nessun genere trovato',
+            movies:            'Film',
+            series:            'Serie TV',
+            film:              'FILM',
+            serieLabel:        'SERIE',
+            loading:           'Caricamento...',
+        },
+        en: {
+            nextEpisode:       'Next episode',
+            nextEpisodes:      'Upcoming episodes',
+            moreUpcoming:      'upcoming',
+            close:             'Close',
+            seen:              'Watched',
+            episode:           'EPISODE',
+            markSeasonWatched: 'Mark season as watched',
+            season:            'Season',
+            chatTitle:         'Chat',
+            chatPlaceholder:   'Write a message...',
+            trendingTitle:     'Trending Now',
+            trendingKicker:    'START WATCHING',
+            anchorMovies:      ['Recently added movies','Recent movies'],
+            continueWatching:  'Next Up',
+            notAuthenticated:  'Not authenticated',
+            noGenres:          'No genres found',
+            movies:            'Movies',
+            series:            'TV Shows',
+            film:              'MOVIE',
+            serieLabel:        'SERIES',
+            loading:           'Loading...',
+        }
+    };
+    const t = _i18n[_lang] || _i18n['en'];
+
+
     'use strict';
 
     // ====================== CONFIG ======================
@@ -35,16 +88,15 @@
 
     const CACHE_HOURS = 24;
 
-    const SECTION_TITLE = 'Di Tendenza Ora';
-    const KICKER_TEXT = 'INIZIA A GUARDARE';
+    const SECTION_TITLE = t.trendingTitle;
+    const KICKER_TEXT = t.trendingKicker;
 
     const MAX_ITEMS = 10;
 
     // La nostra sezione viene inserita PRIMA della prima di queste
     // che trova (i temi possono rinominare l'etichetta nel tempo).
     const ANCHOR_CANDIDATE_TITLES = [
-        'Film aggiunti di recente',
-        'Film recenti',
+        ...t.anchorMovies,
         'Recently added movies',
         'Latest movies'
     ];
@@ -52,7 +104,7 @@
     // Se nessuna delle etichette sopra viene trovata, come ultima
     // spiaggia ci ancoriamo subito dopo questa sezione (di solito
     // la prima riga della home).
-    const CONTINUE_WATCHING_TITLE = 'Prossimo';
+    const CONTINUE_WATCHING_TITLE = t.continueWatching;
 
     // Durata del long press (ridotta per essere più reattivo).
     const LONG_PRESS_MS = 350;

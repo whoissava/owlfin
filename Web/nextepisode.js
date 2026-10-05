@@ -1,5 +1,58 @@
 (function () {
     "use strict";
+    // ── i18n ────────────────────────────────────────────────────────
+    const _lang = (navigator.language || 'it').split('-')[0];
+    const _i18n = {
+        it: {
+            nextEpisode:       'Prossimo episodio',
+            nextEpisodes:      'Prossimi episodi',
+            moreUpcoming:      'in arrivo',
+            close:             'Chiudi',
+            seen:              'Visto',
+            episode:           'PUNTATA',
+            markSeasonWatched: 'Segna stagione come vista',
+            season:            'Stagione',
+            chatTitle:         'Chat',
+            chatPlaceholder:   'Scrivi un messaggio...',
+            trendingTitle:     'Di Tendenza Ora',
+            trendingKicker:    'INIZIA A GUARDARE',
+            anchorMovies:      ['Film aggiunti di recente','Film recenti'],
+            continueWatching:  'Prossimo',
+            notAuthenticated:  'Non autenticato',
+            noGenres:          'Nessun genere trovato',
+            movies:            'Film',
+            series:            'Serie TV',
+            film:              'FILM',
+            serieLabel:        'SERIE',
+            loading:           'Caricamento...',
+        },
+        en: {
+            nextEpisode:       'Next episode',
+            nextEpisodes:      'Upcoming episodes',
+            moreUpcoming:      'upcoming',
+            close:             'Close',
+            seen:              'Watched',
+            episode:           'EPISODE',
+            markSeasonWatched: 'Mark season as watched',
+            season:            'Season',
+            chatTitle:         'Chat',
+            chatPlaceholder:   'Write a message...',
+            trendingTitle:     'Trending Now',
+            trendingKicker:    'START WATCHING',
+            anchorMovies:      ['Recently added movies','Recent movies'],
+            continueWatching:  'Next Up',
+            notAuthenticated:  'Not authenticated',
+            noGenres:          'No genres found',
+            movies:            'Movies',
+            series:            'TV Shows',
+            film:              'MOVIE',
+            serieLabel:        'SERIES',
+            loading:           'Loading...',
+        }
+    };
+    const t = _i18n[_lang] || _i18n['en'];
+
+
 
     let currentId = null;
     let pendingEpisodes = null;
@@ -65,7 +118,7 @@
 
     function formatDate(iso) {
         try {
-            return new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
+            return new Date(iso).toLocaleDateString(_lang === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "long", year: "numeric" });
         } catch {
             return iso;
         }
@@ -105,11 +158,12 @@
         const header = document.createElement("div");
         header.style.cssText = "display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;";
         const h = document.createElement("h3");
-        h.textContent = "Prossimi episodi";
+        h.textContent = t.nextEpisodes;
         h.style.cssText = "margin:0;font-size:16px;font-weight:600;color:#fff;";
         const closeBtn = document.createElement("button");
         closeBtn.textContent = "×";
-        closeBtn.setAttribute("aria-label", "Chiudi");
+        closeBtn.title = t.close;
+        closeBtn.setAttribute("aria-label", t.close);
         closeBtn.style.cssText = "background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;line-height:1;padding:4px;";
         closeBtn.addEventListener("click", closeModal);
         header.appendChild(h);
@@ -154,10 +208,10 @@
         badge.id = "owlfin-next-episode";
         badge.dataset.itemId = itemId;
         badge.textContent = episodes.length > 1
-            ? `Prossimo episodio: ${episodeLabel(next)} – ${formatDate(next.airDate)} (+${episodes.length - 1} in arrivo)`
-            : `Prossimo episodio: ${episodeLabel(next)} – ${formatDate(next.airDate)}`;
+            ? `${t.nextEpisode}: ${episodeLabel(next)} – ${formatDate(next.airDate)} (+${episodes.length - 1} ${t.moreUpcoming})`
+            : `${t.nextEpisode}: ${episodeLabel(next)} – ${formatDate(next.airDate)}`;
         badge.style.cssText = "margin:6px 0;font-size:14px;opacity:.85;cursor:pointer;text-decoration:underline dotted;width:fit-content;";
-        badge.title = "Mostra tutte le date in arrivo";
+        badge.title = t.nextEpisodes;
         badge.addEventListener("click", () => openModal(episodes));
         anchor.parentElement.insertBefore(badge, anchor.nextSibling);
         return true;
@@ -229,6 +283,9 @@
 
     // Reti di sicurezza aggiuntive per navigazioni che il fetch-hook potesse perdere.
     window.addEventListener("hashchange", ensureBadge);
+    document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") ensureBadge();
+    });
     document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "visible") ensureBadge();
     });

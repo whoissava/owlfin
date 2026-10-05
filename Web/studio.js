@@ -320,8 +320,8 @@ return [...new Map(allItems.map(i=>[i.Id,i])).values()];
 }
 
 function getType(it){
-if(it?.Type==="Movie")return"FILM";
-if(it?.Type==="Series")return"SERIE";
+if(it?.Type==="Movie")return t.film;
+if(it?.Type==="Series")return t.serieLabel;
 return"CONTENUTO";
 }
 
@@ -379,7 +379,7 @@ return;
 
 const placeholder=document.createElement("div");
 placeholder.className="srow-items-row";
-placeholder.innerHTML=`<div class="srow-loading">Loading...</div>`;
+placeholder.innerHTML=`<div class="srow-loading">${t.loading}</div>`;
 container.appendChild(placeholder);
 
 const items=await fetchByTag(entry.tag);

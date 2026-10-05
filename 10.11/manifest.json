@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.8.0.0",
+                "changelog": "1.8.0.0: supporto IT/EN su tutti gli script JS, UI impostazioni riorganizzata per sezioni, fix badge prossimo episodio persistente.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.8.0.0.zip",
+                "checksum": "cd76813bb00dbbe4e876256adb777729",
+                "timestamp": "2026-10-05T08:48:53Z"
+            },
+            {
                 "version": "1.7.9.0",
                 "changelog": "1.7.9.0: UI impostazioni riorganizzata per sezioni, supporto i18n IT/EN, fix badge prossimo episodio persistente.\n",
                 "targetAbi": "10.11.0.0",
