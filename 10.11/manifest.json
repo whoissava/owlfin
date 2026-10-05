@@ -9,6 +9,14 @@
         "versions": [
             {
                 "version": "1.8.1.0",
+                "changelog": "1.8.1.0: fix seasons.js (conflitto variabile t con i18n), fix badge prossimo episodio persistente.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.8.1.0.zip",
+                "checksum": "50f8bff7f1a41bcabfb3049d8f620224",
+                "timestamp": "2026-10-05T21:51:23Z"
+            },
+            {
+                "version": "1.8.1.0",
                 "changelog": "1.8.1.0: fix badge prossimo episodio (loop MutationObserver), fix seasons, pulizia bak.\n",
                 "targetAbi": "10.11.0.0",
                 "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.8.1.0.zip",

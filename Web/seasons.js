@@ -5,30 +5,18 @@
   const _lang = (navigator.language || 'it').split('-')[0];
   const _i18n = {
       it: {
-      nextEpisode: 'Prossimo episodio', nextEpisodes: 'Prossimi episodi',
-      moreUpcoming: 'in arrivo', close: 'Chiudi', seen: 'Visto',
-      episode: 'PUNTATA', markSeasonWatched: t.markSeasonWatched,
-      season: 'Stagione', chatTitle: 'Chat',
-      chatPlaceholder: 'Scrivi un messaggio...',
-      trendingTitle: 'Di Tendenza Ora', trendingKicker: 'INIZIA A GUARDARE',
-      anchorMovies: ['Film aggiunti di recente','Film recenti'],
-      continueWatching: 'Prossimo', notAuthenticated: 'Non autenticato',
-      noGenres: 'Nessun genere trovato', movies: 'Film', series: 'Serie TV',
-      film: 'FILM', serieLabel: 'SERIE', loading: 'Caricamento...',
-        },
+          seen: 'Visto',
+          episode: 'PUNTATA',
+          markSeasonWatched: i18n.markSeasonWatched,
+      },
       en: {
-      nextEpisode: 'Next episode', nextEpisodes: 'Upcoming episodes',
-      moreUpcoming: 'upcoming', close: 'Close', seen: 'Watched',
-      episode: 'EPISODE', markSeasonWatched: 'Mark season as watched',
-      season: 'Season', chatTitle: 'Chat', chatPlaceholder: 'Write a message...',
-      trendingTitle: 'Trending Now', trendingKicker: 'START WATCHING',
-      anchorMovies: ['Recently added movies','Recent movies'],
-      continueWatching: 'Next Up', notAuthenticated: 'Not authenticated',
-      noGenres: 'No genres found', movies: 'Movies', series: 'TV Shows',
-      film: 'MOVIE', serieLabel: 'SERIES', loading: 'Loading...',
-        }
+          seen: 'Watched',
+          episode: 'EPISODE',
+          markSeasonWatched: 'Mark season as watched',
+      }
   };
-  const t = _i18n[_lang] || _i18n['en'];
+  const i18n = _i18n[_lang] || _i18n['en'];
+
 
 
   // === CONFIG ===
@@ -219,7 +207,7 @@
     const minutes = ticksToMinutes(ep.RunTimeTicks);
     const watch = getWatchState(ep);
     const overlay =
-      (watch.watched ? `<div class="owl-episode-check" title="${t.seen}">${CHECK_SVG}</div>` : '') +
+      (watch.watched ? `<div class="owl-episode-check" title="${i18n.seen}">${CHECK_SVG}</div>` : '') +
       (watch.percent > 0
         ? `<div class="owl-episode-progress"><div class="owl-episode-progress-fill" style="width:${watch.percent.toFixed(1)}%"></div></div>`
         : '');
@@ -437,7 +425,6 @@
 
     const stops = [hideEl, section, overview, nextUp].filter(Boolean);
     const candidates = findAnchorCandidates(scope, stops, overview);
-    if (!candidates.length && !overview) return;
     const target = candidates.length ? candidates[0] : { el: hideEl, reason: 'fallback-stagioni' };
 
     const parent = target.el.parentNode;
@@ -471,7 +458,7 @@
     };
     run();
     const iv = setInterval(() => {
-      if (!section.isConnected || !hideEl.isConnected || Date.now() - start > CONFIG.repositionTimeoutMs) {
+      if (!section.isConnected || Date.now() - start > CONFIG.repositionTimeoutMs) {
         clearInterval(iv);
         return;
       }
