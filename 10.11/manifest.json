@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.8.1.0",
+                "changelog": "1.8.1.0: fix badge prossimo episodio (loop MutationObserver), fix seasons, pulizia bak.\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.8.1.0.zip",
+                "checksum": "4fca8d87880a103d79489937cd336863",
+                "timestamp": "2026-10-05T21:01:51Z"
+            },
+            {
                 "version": "1.8.0.0",
                 "changelog": "1.8.0.0: supporto IT/EN su tutti gli script JS, UI impostazioni riorganizzata per sezioni, fix badge prossimo episodio persistente.\n",
                 "targetAbi": "10.11.0.0",

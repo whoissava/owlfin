@@ -1,57 +1,33 @@
 (function () {
     "use strict";
-    // ── i18n ────────────────────────────────────────────────────────
+    // ── i18n ──────────────────────────────────────────────────────
     const _lang = (navigator.language || 'it').split('-')[0];
     const _i18n = {
         it: {
-            nextEpisode:       'Prossimo episodio',
-            nextEpisodes:      'Prossimi episodi',
-            moreUpcoming:      'in arrivo',
-            close:             'Chiudi',
-            seen:              'Visto',
-            episode:           'PUNTATA',
-            markSeasonWatched: 'Segna stagione come vista',
-            season:            'Stagione',
-            chatTitle:         'Chat',
-            chatPlaceholder:   'Scrivi un messaggio...',
-            trendingTitle:     'Di Tendenza Ora',
-            trendingKicker:    'INIZIA A GUARDARE',
-            anchorMovies:      ['Film aggiunti di recente','Film recenti'],
-            continueWatching:  'Prossimo',
-            notAuthenticated:  'Non autenticato',
-            noGenres:          'Nessun genere trovato',
-            movies:            'Film',
-            series:            'Serie TV',
-            film:              'FILM',
-            serieLabel:        'SERIE',
-            loading:           'Caricamento...',
+            nextEpisode: 'Prossimo episodio', nextEpisodes: 'Prossimi episodi',
+            moreUpcoming: 'in arrivo', close: 'Chiudi', seen: 'Visto',
+            episode: 'PUNTATA', markSeasonWatched: 'Segna stagione come vista',
+            season: 'Stagione', chatTitle: 'Chat',
+            chatPlaceholder: 'Scrivi un messaggio...',
+            trendingTitle: 'Di Tendenza Ora', trendingKicker: 'INIZIA A GUARDARE',
+            anchorMovies: ['Film aggiunti di recente','Film recenti'],
+            continueWatching: 'Prossimo', notAuthenticated: 'Non autenticato',
+            noGenres: 'Nessun genere trovato', movies: 'Film', series: 'Serie TV',
+            film: 'FILM', serieLabel: 'SERIE', loading: 'Caricamento...',
         },
         en: {
-            nextEpisode:       'Next episode',
-            nextEpisodes:      'Upcoming episodes',
-            moreUpcoming:      'upcoming',
-            close:             'Close',
-            seen:              'Watched',
-            episode:           'EPISODE',
-            markSeasonWatched: 'Mark season as watched',
-            season:            'Season',
-            chatTitle:         'Chat',
-            chatPlaceholder:   'Write a message...',
-            trendingTitle:     'Trending Now',
-            trendingKicker:    'START WATCHING',
-            anchorMovies:      ['Recently added movies','Recent movies'],
-            continueWatching:  'Next Up',
-            notAuthenticated:  'Not authenticated',
-            noGenres:          'No genres found',
-            movies:            'Movies',
-            series:            'TV Shows',
-            film:              'MOVIE',
-            serieLabel:        'SERIES',
-            loading:           'Loading...',
+            nextEpisode: 'Next episode', nextEpisodes: 'Upcoming episodes',
+            moreUpcoming: 'upcoming', close: 'Close', seen: 'Watched',
+            episode: 'EPISODE', markSeasonWatched: 'Mark season as watched',
+            season: 'Season', chatTitle: 'Chat', chatPlaceholder: 'Write a message...',
+            trendingTitle: 'Trending Now', trendingKicker: 'START WATCHING',
+            anchorMovies: ['Recently added movies','Recent movies'],
+            continueWatching: 'Next Up', notAuthenticated: 'Not authenticated',
+            noGenres: 'No genres found', movies: 'Movies', series: 'TV Shows',
+            film: 'MOVIE', serieLabel: 'SERIES', loading: 'Loading...',
         }
     };
     const t = _i18n[_lang] || _i18n['en'];
-
 
 
     let currentId = null;
@@ -162,7 +138,6 @@
         h.style.cssText = "margin:0;font-size:16px;font-weight:600;color:#fff;";
         const closeBtn = document.createElement("button");
         closeBtn.textContent = "×";
-        closeBtn.title = t.close;
         closeBtn.setAttribute("aria-label", t.close);
         closeBtn.style.cssText = "background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;line-height:1;padding:4px;";
         closeBtn.addEventListener("click", closeModal);
@@ -213,7 +188,9 @@
         badge.style.cssText = "margin:6px 0;font-size:14px;opacity:.85;cursor:pointer;text-decoration:underline dotted;width:fit-content;";
         badge.title = t.nextEpisodes;
         badge.addEventListener("click", () => openModal(episodes));
+        _badgeInserting = true;
         anchor.parentElement.insertBefore(badge, anchor.nextSibling);
+        _badgeInserting = false;
         return true;
     }
 
@@ -232,7 +209,9 @@
 
     // Observer permanente, creato una sola volta: non viene mai distrutto dalla
     // navigazione SPA, quindi non resta mai orfano su un nodo rimosso da React.
-    new MutationObserver(ensureBadge).observe(document.body, { childList: true, subtree: true });
+    let _badgeInserting = false;
+    const _badgeObserver = new MutationObserver(() => { if (_badgeInserting) return; ensureBadge(); });
+    _badgeObserver.observe(document.body, { childList: true, subtree: true });
 
     async function tryShow(itemId, retriesLeft) {
         const { token, userId, base } = gc();
@@ -283,9 +262,7 @@
 
     // Reti di sicurezza aggiuntive per navigazioni che il fetch-hook potesse perdere.
     window.addEventListener("hashchange", ensureBadge);
-    document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState === "visible") ensureBadge();
-    });
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") ensureBadge(); });
     document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "visible") ensureBadge();
     });

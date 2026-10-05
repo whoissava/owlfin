@@ -1,58 +1,35 @@
 (function () {
-    // ── i18n ────────────────────────────────────────────────────────
-    const _lang = (navigator.language || 'it').split('-')[0];
-    const _i18n = {
-        it: {
-            nextEpisode:       'Prossimo episodio',
-            nextEpisodes:      'Prossimi episodi',
-            moreUpcoming:      'in arrivo',
-            close:             'Chiudi',
-            seen:              'Visto',
-            episode:           'PUNTATA',
-            markSeasonWatched: t.markSeasonWatched,
-            season:            'Stagione',
-            chatTitle:         'Chat',
-            chatPlaceholder:   'Scrivi un messaggio...',
-            trendingTitle:     'Di Tendenza Ora',
-            trendingKicker:    'INIZIA A GUARDARE',
-            anchorMovies:      ['Film aggiunti di recente','Film recenti'],
-            continueWatching:  'Prossimo',
-            notAuthenticated:  'Non autenticato',
-            noGenres:          'Nessun genere trovato',
-            movies:            'Film',
-            series:            'Serie TV',
-            film:              'FILM',
-            serieLabel:        'SERIE',
-            loading:           'Caricamento...',
-        },
-        en: {
-            nextEpisode:       'Next episode',
-            nextEpisodes:      'Upcoming episodes',
-            moreUpcoming:      'upcoming',
-            close:             'Close',
-            seen:              'Watched',
-            episode:           'EPISODE',
-            markSeasonWatched: 'Mark season as watched',
-            season:            'Season',
-            chatTitle:         'Chat',
-            chatPlaceholder:   'Write a message...',
-            trendingTitle:     'Trending Now',
-            trendingKicker:    'START WATCHING',
-            anchorMovies:      ['Recently added movies','Recent movies'],
-            continueWatching:  'Next Up',
-            notAuthenticated:  'Not authenticated',
-            noGenres:          'No genres found',
-            movies:            'Movies',
-            series:            'TV Shows',
-            film:              'MOVIE',
-            serieLabel:        'SERIES',
-            loading:           'Loading...',
-        }
-    };
-    const t = _i18n[_lang] || _i18n['en'];
-
-
   'use strict';
+
+  // ── i18n ──────────────────────────────────────────────────────
+  const _lang = (navigator.language || 'it').split('-')[0];
+  const _i18n = {
+      it: {
+      nextEpisode: 'Prossimo episodio', nextEpisodes: 'Prossimi episodi',
+      moreUpcoming: 'in arrivo', close: 'Chiudi', seen: 'Visto',
+      episode: 'PUNTATA', markSeasonWatched: t.markSeasonWatched,
+      season: 'Stagione', chatTitle: 'Chat',
+      chatPlaceholder: 'Scrivi un messaggio...',
+      trendingTitle: 'Di Tendenza Ora', trendingKicker: 'INIZIA A GUARDARE',
+      anchorMovies: ['Film aggiunti di recente','Film recenti'],
+      continueWatching: 'Prossimo', notAuthenticated: 'Non autenticato',
+      noGenres: 'Nessun genere trovato', movies: 'Film', series: 'Serie TV',
+      film: 'FILM', serieLabel: 'SERIE', loading: 'Caricamento...',
+        },
+      en: {
+      nextEpisode: 'Next episode', nextEpisodes: 'Upcoming episodes',
+      moreUpcoming: 'upcoming', close: 'Close', seen: 'Watched',
+      episode: 'EPISODE', markSeasonWatched: 'Mark season as watched',
+      season: 'Season', chatTitle: 'Chat', chatPlaceholder: 'Write a message...',
+      trendingTitle: 'Trending Now', trendingKicker: 'START WATCHING',
+      anchorMovies: ['Recently added movies','Recent movies'],
+      continueWatching: 'Next Up', notAuthenticated: 'Not authenticated',
+      noGenres: 'No genres found', movies: 'Movies', series: 'TV Shows',
+      film: 'MOVIE', serieLabel: 'SERIES', loading: 'Loading...',
+        }
+  };
+  const t = _i18n[_lang] || _i18n['en'];
+
 
   // === CONFIG ===
   const CONFIG = {
