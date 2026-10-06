@@ -159,9 +159,7 @@
         badge.style.cssText = "margin:6px 0;font-size:14px;opacity:.85;cursor:pointer;text-decoration:underline dotted;width:fit-content;";
         badge.title = "Mostra tutte le date in arrivo";
         badge.addEventListener("click", () => openModal(episodes));
-        _badgeInserting = true;
         anchor.parentElement.insertBefore(badge, anchor.nextSibling);
-        setTimeout(() => { _badgeInserting = false; }, 200);
         return true;
     }
 
@@ -175,15 +173,15 @@
 
     // Observer permanente, creato una sola volta: non viene mai distrutto dalla
     // navigazione SPA, quindi non resta mai orfano su un nodo rimosso da React.
-    // Debounce + flag anti-loop: evita che l'inserimento del badge
-    // triggerі di nuovo il MutationObserver creando un loop infinito.
-    let _badgeDebounce = null;
-    let _badgeInserting = false;
-    new MutationObserver(() => {
-        if (_badgeInserting) return;
-        clearTimeout(_badgeDebounce);
-        _badgeDebounce = setTimeout(ensureBadge, 150);
-    }).observe(document.body, { childList: true, subtree: true });
+    // Polling leggero ogni 2s: controlla solo se il badge è ancora nel DOM.
+    // Evita il loop del MutationObserver (inserimento badge → mutazione → rimozione → loop).
+    setInterval(() => {
+        if (!currentId || !pendingEpisodes || !pendingEpisodes.length) return;
+        const existing = document.getElementById("owlfin-next-episode");
+        if (!existing || existing.dataset.itemId !== currentId) {
+            renderBadge(currentId, pendingEpisodes);
+        }
+    }, 2000);
 
     async function tryShow(itemId, retriesLeft) {
         const { token, userId, base } = gc();

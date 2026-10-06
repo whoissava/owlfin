@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.8.4.0",
+                "changelog": "1.8.4.0: fix badge prossimo episodio sparisce (polling ogni 2s invece di MutationObserver).\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.8.4.0.zip",
+                "checksum": "6dfab6139aaafe152d282a8b316a966d",
+                "timestamp": "2026-10-06T05:42:41Z"
+            },
+            {
                 "version": "1.8.3.0",
                 "changelog": "1.8.3.0: fix badge prossimo episodio persistente (debounce MutationObserver, flag anti-loop, visibilitychange).\n",
                 "targetAbi": "10.11.0.0",
