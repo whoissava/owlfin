@@ -1,24 +1,6 @@
 (function () {
   'use strict';
 
-  // ── i18n ──────────────────────────────────────────────────────
-  const _lang = (navigator.language || 'it').split('-')[0];
-  const _i18n = {
-      it: {
-          seen: 'Visto',
-          episode: 'PUNTATA',
-          markSeasonWatched: i18n.markSeasonWatched,
-      },
-      en: {
-          seen: 'Watched',
-          episode: 'EPISODE',
-          markSeasonWatched: 'Mark season as watched',
-      }
-  };
-  const i18n = _i18n[_lang] || _i18n['en'];
-
-
-
   // === CONFIG ===
   const CONFIG = {
     seasonCardSelector: '.card[data-type="Season"]',
@@ -207,7 +189,7 @@
     const minutes = ticksToMinutes(ep.RunTimeTicks);
     const watch = getWatchState(ep);
     const overlay =
-      (watch.watched ? `<div class="owl-episode-check" title="${i18n.seen}">${CHECK_SVG}</div>` : '') +
+      (watch.watched ? `<div class="owl-episode-check" title="Visto">${CHECK_SVG}</div>` : '') +
       (watch.percent > 0
         ? `<div class="owl-episode-progress"><div class="owl-episode-progress-fill" style="width:${watch.percent.toFixed(1)}%"></div></div>`
         : '');
@@ -425,6 +407,7 @@
 
     const stops = [hideEl, section, overview, nextUp].filter(Boolean);
     const candidates = findAnchorCandidates(scope, stops, overview);
+    if (!candidates.length && !overview) return;
     const target = candidates.length ? candidates[0] : { el: hideEl, reason: 'fallback-stagioni' };
 
     const parent = target.el.parentNode;
@@ -458,7 +441,7 @@
     };
     run();
     const iv = setInterval(() => {
-      if (!section.isConnected || Date.now() - start > CONFIG.repositionTimeoutMs) {
+      if (!section.isConnected || !hideEl.isConnected || Date.now() - start > CONFIG.repositionTimeoutMs) {
         clearInterval(iv);
         return;
       }

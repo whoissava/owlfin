@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.5.2.0",
+                "changelog": "2.5.2.0: ripristinato seasons.js alla versione stabile 2.4.7.0.\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.5.2.0.zip",
+                "checksum": "b50816ae851d564d0e53e21f31b458a8",
+                "timestamp": "2026-10-06T05:20:00Z"
+            },
+            {
                 "version": "2.5.1.0",
                 "changelog": "2.5.1.0: fix seasons.js (conflitto variabile t con i18n), fix badge prossimo episodio persistente.\n",
                 "targetAbi": "12.0.0.0",
