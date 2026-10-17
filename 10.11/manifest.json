@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.9.0.0",
+                "changelog": "1.9.0.0: aggiunto JellyTok (Scopri): feed trailer a schermo intero stile TikTok (voce nel menu laterale, titoli casuali dalla libreria a blocchi di 20)\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.9.0.0.zip",
+                "checksum": "76caab933d83ea386ae3c65e0f34b7b8",
+                "timestamp": "2026-10-17T16:03:31Z"
+            },
+            {
                 "version": "1.8.4.0",
                 "changelog": "1.8.4.0: fix badge prossimo episodio sparisce (polling ogni 2s invece di MutationObserver).\n",
                 "targetAbi": "10.11.0.0",

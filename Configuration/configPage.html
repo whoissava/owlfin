@@ -63,6 +63,21 @@
                     </div>
 
                     <div class="verticalSection">
+                        <h3 class="sectionTitle" data-i18n="owlfin_section_discover">Scopri</h3>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input id="DiscoverEnabled" name="DiscoverEnabled" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="owlfin_discover_label">Scopri (trailer a scorrimento)</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="owlfin_discover_desc">
+                                Feed a schermo intero di trailer in stile TikTok con titoli casuali dalla tua libreria, richiamabile dal menu laterale. Usa i trailer di Jellyfin o, se presente, la API key TMDB.
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="verticalSection">
                         <h3 class="sectionTitle" data-i18n="owlfin_section_search">Ricerca</h3>
 
                         <div class="checkboxContainer checkboxContainer-withDescription">
@@ -162,6 +177,9 @@
                     owlfin_genres_desc:      'Overlay a schermo intero per sfogliare i generi con filtro Film/Serie TV, richiamabile dal menu laterale. Richiede File Transformation.',
                     owlfin_trending_label:   'Di Tendenza Ora',
                     owlfin_trending_desc:    'Sezione in Home con i titoli di tendenza TMDB presenti nella tua libreria. Long press su una card apre il trailer. Richiede API key TMDB.',
+                    owlfin_section_discover: 'Scopri',
+                    owlfin_discover_label:   'Scopri (trailer a scorrimento)',
+                    owlfin_discover_desc:    'Feed a schermo intero di trailer in stile TikTok con titoli casuali dalla tua libreria, richiamabile dal menu laterale. Usa i trailer di Jellyfin o, se presente, la API key TMDB.',
                     owlfin_section_search:   'Ricerca',
                     owlfin_search_label:     'Griglia poster nei suggerimenti',
                     owlfin_search_desc:      'Sostituisce i suggerimenti testuali con una griglia di locandine casuali dalla tua libreria.',
@@ -190,6 +208,9 @@
                     owlfin_genres_desc:      'Full-screen overlay to browse genres with a Movie/Series filter, accessible from the side menu. Requires File Transformation.',
                     owlfin_trending_label:   'Trending Now',
                     owlfin_trending_desc:    'Home section showing trending TMDB titles in your library. Long press on a card opens the trailer. Requires TMDB API key.',
+                    owlfin_section_discover: 'Discover',
+                    owlfin_discover_label:   'Discover (scrolling trailers)',
+                    owlfin_discover_desc:    'Full-screen TikTok-style trailer feed with random titles from your library, available from the side menu. Uses Jellyfin trailers or, if set, the TMDB API key.',
                     owlfin_section_search:   'Search',
                     owlfin_search_label:     'Poster grid in search suggestions',
                     owlfin_search_desc:      'Replaces text suggestions with a random poster grid from your library.',
@@ -220,7 +241,7 @@
             }
 
             var OwlfinConfig = { pluginUniqueId: 'b13839a6-5916-4f75-aed9-331901b8e3e6' };
-            var IDS = ['CategoriesEnabled','StudiosEnabled','GenresEnabled','TrendingClientEnabled','SearchGridEnabled','PopupEnabled','SonarrEnabled','ChatEnabled'];
+            var IDS = ['CategoriesEnabled','StudiosEnabled','GenresEnabled','TrendingClientEnabled','SearchGridEnabled','DiscoverEnabled','PopupEnabled','SonarrEnabled','ChatEnabled'];
             function q(id) { return document.querySelector('#' + id); }
 
             document.querySelector('#OwlfinConfigPage')

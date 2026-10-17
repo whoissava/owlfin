@@ -24,6 +24,7 @@ public class PluginConfiguration : BasePluginConfiguration
         PopupEnabled = true;
         TrendingClientEnabled = false;
         SearchGridEnabled = true;
+        DiscoverEnabled = true;
     }
 
     /// <summary>
@@ -107,4 +108,10 @@ public class PluginConfiguration : BasePluginConfiguration
     /// are replaced with a random poster grid (search.js).
     /// </summary>
     public bool SearchGridEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the full-screen trailer
+    /// feed (jellytok.js) is injected into the web client.
+    /// </summary>
+    public bool DiscoverEnabled { get; set; }
 }

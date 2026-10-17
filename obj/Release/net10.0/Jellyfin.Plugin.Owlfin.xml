@@ -161,6 +161,32 @@
             from <see cref="T:Jellyfin.Plugin.Owlfin.Api.SonarrController"/> -- never sent to the browser.
             </summary>
         </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.PopupEnabled">
+            <summary>
+            Gets or sets a value indicating whether the season popup
+            (popup10-1.js) is injected into the web client's series detail page.
+            Restart Jellyfin after changing this.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.TrendingClientEnabled">
+            <summary>
+            Gets or sets a value indicating whether the client-side trending
+            section (trending.js) is injected into the web client home page.
+            Requires a valid TmdbApiKey. Restart Jellyfin after changing this.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.SearchGridEnabled">
+            <summary>
+            Gets or sets a value indicating whether the search suggestions
+            are replaced with a random poster grid (search.js).
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.DiscoverEnabled">
+            <summary>
+            Gets or sets a value indicating whether the full-screen trailer
+            feed (jellytok.js) is injected into the web client.
+            </summary>
+        </member>
         <member name="T:Jellyfin.Plugin.Owlfin.Helpers.ChatStorage">
             <summary>
             Append-only, unlimited chat history. Stored as newline-delimited JSON

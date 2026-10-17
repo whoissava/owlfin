@@ -72,6 +72,16 @@ public static class TransformationPatches
             scripts += BuildScriptElement("Owlfin-Search", "Web.search.js");
         }
 
+        if (config.DiscoverEnabled)
+        {
+            if (!string.IsNullOrEmpty(config.TmdbApiKey))
+            {
+                scripts += $"<script>window.__owlfin_tmdb_key__={System.Text.Json.JsonSerializer.Serialize(config.TmdbApiKey)};</script>";
+            }
+
+            scripts += BuildScriptElement("Owlfin-Jellytok", "Web.jellytok.js");
+        }
+
         if (string.IsNullOrEmpty(scripts))
         {
             return contents;

@@ -14,6 +14,8 @@ Personalizzazioni indipendenti per il client web di Jellyfin, ognuna attivabile 
 | **Selettore stagioni** | Selettore stagioni con griglia episodi a scorrimento, segno automatico puntate precedenti e pulsante "Segna stagione come vista" |
 | **Chat** | Chat generale tra tutti gli utenti del server, accessibile dal menu laterale |
 | **Di Tendenza Ora** | Sezione orizzontale in Home con card backdrop dei titoli TMDB presenti in libreria. Tocco normale apre il dettaglio Jellyfin, long press avvia il trailer italiano su YouTube direttamente nella card (richiede API key TMDB) |
+| **Griglia poster in ricerca** | Sostituisce i suggerimenti di ricerca con una griglia di locandine casuali dalla libreria |
+| **Scopri (JellyTok)** | Feed a schermo intero di trailer in stile TikTok con titoli casuali dalla libreria, caricati a blocchi di 20. Voce nel menu laterale, X in alto per chiudere. Usa i trailer di Jellyfin o TMDB (opzionale) |
 
 ---
 
