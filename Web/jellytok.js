@@ -9,7 +9,7 @@
 
     var BLOCK = 20;
     var PREFETCH_AT = 5;
-    var CACHE_PREFIX = 'owlfin_discover_trailer_v2_';
+    var CACHE_PREFIX = 'owlfin_jellytok_trailer_v3_';
     var NONE = '__NONE__';
     var FIELDS = 'Overview,Genres,ProviderIds,RemoteTrailers';
     var lastErr = '';
@@ -93,37 +93,69 @@
         return m ? m[1] : null;
     }
 
-    function pickTmdbVideo(results) {
+    function pickTmdbVideos(results) {
         var yt = (results || []).filter(function (v) { return v.site === 'YouTube' && v.key; });
-        function best(type) {
-            var l = yt.filter(function (v) { return v.type === type; });
-            return l.find(function (v) { return v.official; }) || l[0];
-        }
-        var v = best('Trailer') || best('Teaser');
-        return v ? v.key : null;
+        function rank(v) { return (v.type === 'Trailer' ? 0 : v.type === 'Teaser' ? 2 : 9) + (v.official ? 0 : 1); }
+        return yt.filter(function (v) { return v.type === 'Trailer' || v.type === 'Teaser'; })
+            .sort(function (x, y) { return rank(x) - rank(y); })
+            .map(function (v) { return v.key; });
     }
 
-    function tmdbVideos(kind, tmdbId, lang) {
-        var key = window.__owlfin_tmdb_key__;
-        var url = 'https://api.themoviedb.org/3/' + kind + '/' + tmdbId + '/videos?api_key=' + encodeURIComponent(key) + (lang ? '&language=' + lang : '');
-        return fetch(url).then(function (r) { return r.ok ? r.json() : { results: [] }; }).then(function (j) { return pickTmdbVideo(j.results); }).catch(function () { return null; });
+    function tmdbGet(path, params) {
+        var q = 'api_key=' + encodeURIComponent(window.__owlfin_tmdb_key__);
+        Object.keys(params || {}).forEach(function (k) { if (params[k] != null && params[k] !== '') q += '&' + k + '=' + encodeURIComponent(params[k]); });
+        return fetch('https://api.themoviedb.org/3/' + path + '?' + q)
+            .then(function (r) { if (!r.ok) throw new Error('TMDB ' + r.status); return r.json(); });
     }
 
+    function tmdbVideos(kind, tmdbId) {
+        var lang = LANG === 'it' ? 'it-IT' : 'en-US';
+        return tmdbGet(kind + '/' + tmdbId + '/videos', { language: lang }).then(function (j) {
+            var l = pickTmdbVideos(j.results);
+            if (l.length) return l;
+            return tmdbGet(kind + '/' + tmdbId + '/videos', {}).then(function (j2) { return pickTmdbVideos(j2.results); });
+        });
+    }
+
+    function tmdbFindId(kind, item) {
+        var params = { query: item.Name, language: LANG === 'it' ? 'it-IT' : 'en-US' };
+        if (item.ProductionYear) params[kind === 'tv' ? 'first_air_date_year' : 'year'] = item.ProductionYear;
+        return tmdbGet('search/' + kind, params).then(function (j) {
+            return (j.results && j.results[0]) ? j.results[0].id : null;
+        });
+    }
+
+    // Restituisce una Promise<string[]> con gli ID YouTube candidati (vuota = nessun trailer).
+    // Solo i veri "nessun trailer" vengono messi in cache; gli errori di rete/dati mancanti no.
+    var inflight = {};
     function getTrailer(item) {
         var ck = CACHE_PREFIX + item.Id;
         var cached = lsGet(ck);
-        if (cached) return Promise.resolve(cached === NONE ? null : cached);
+        if (cached) return Promise.resolve(cached === NONE ? [] : cached.split(','));
+        if (inflight[item.Id]) return inflight[item.Id];
 
-        var fromJf = null;
-        (item.RemoteTrailers || []).some(function (t) { fromJf = ytIdFromUrl(t.Url); return !!fromJf; });
-        if (fromJf) { lsSet(ck, fromJf); return Promise.resolve(fromJf); }
+        var keys = [];
+        (item.RemoteTrailers || []).forEach(function (t) { var k = ytIdFromUrl(t.Url); if (k && keys.indexOf(k) < 0) keys.push(k); });
 
-        var tmdbId = item.ProviderIds && (item.ProviderIds.Tmdb || item.ProviderIds.tmdb);
-        if (!window.__owlfin_tmdb_key__ || !tmdbId) { lsSet(ck, NONE); return Promise.resolve(null); }
-        var kind = item.Type === 'Series' ? 'tv' : 'movie';
-        return tmdbVideos(kind, tmdbId, LANG === 'it' ? 'it-IT' : 'en-US')
-            .then(function (k) { return k || tmdbVideos(kind, tmdbId, null); })
-            .then(function (k) { lsSet(ck, k || NONE); return k; });
+        var pr;
+        if (keys.length) {
+            pr = Promise.resolve(keys);
+        } else if (!window.__owlfin_tmdb_key__) {
+            pr = Promise.resolve(null);
+        } else {
+            var kind = item.Type === 'Series' ? 'tv' : 'movie';
+            var tmdbId = item.ProviderIds && (item.ProviderIds.Tmdb || item.ProviderIds.tmdb);
+            pr = (tmdbId ? Promise.resolve(tmdbId) : tmdbFindId(kind, item))
+                .then(function (id) { return id ? tmdbVideos(kind, id) : []; })
+                .catch(function (e) { lastErr = 'tmdb: ' + (e && e.message || e); return null; });
+        }
+        inflight[item.Id] = pr.then(function (res) {
+            delete inflight[item.Id];
+            if (res === null) return [];
+            lsSet(ck, res.length ? res.join(',') : NONE);
+            return res;
+        });
+        return inflight[item.Id];
     }
 
     function injectCSS() {
@@ -305,7 +337,7 @@
         card.appendChild(el('div', 'od-grad'));
         card.appendChild(info);
 
-        var rec = { el: card, stage: stage, item: item, iframe: null, tag: null, paused: false, key: undefined, idx: cards.length };
+        var rec = { el: card, stage: stage, item: item, iframe: null, tag: null, paused: false, keys: undefined, ki: 0, idx: cards.length };
         card.__od = rec;
         stage.addEventListener('click', function () { togglePause(rec); });
         cards.push(rec);
@@ -340,28 +372,34 @@
 
     function attach(rec) {
         var token = sessionToken;
-        var p = rec.key !== undefined ? Promise.resolve(rec.key) : getTrailer(rec.item);
-        p.then(function (key) {
-            rec.key = key;
+        var p = rec.keys !== undefined ? Promise.resolve(rec.keys) : getTrailer(rec.item);
+        p.then(function (keys) {
+            rec.keys = keys;
             if (token !== sessionToken || active !== rec) return;
-            if (!key) { setTag(rec, L('noTrailer')); return; }
+            if (!keys.length) { setTag(rec, L('noTrailer')); return; }
             if (rec.iframe) return;
-            var f = document.createElement('iframe');
-            f.allow = 'autoplay; encrypted-media; picture-in-picture';
-            f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
-            f.src = 'https://www.youtube-nocookie.com/embed/' + key +
-                '?autoplay=1&mute=' + (muted ? 1 : 0) +
-                '&controls=0&loop=1&playlist=' + key +
-                '&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0' +
-                '&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
-            f.addEventListener('load', function () {
-                try { f.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), '*'); } catch (e) { /* ignore */ }
-                setTimeout(function () { f.classList.add('od-ready'); }, 700);
-            });
-            rec.iframe = f;
-            rec.paused = false;
-            rec.stage.appendChild(f);
+            play(rec);
         });
+    }
+
+    function play(rec) {
+        var key = rec.keys[rec.ki || 0];
+        if (!key) { setTag(rec, L('noTrailer')); return; }
+        var f = document.createElement('iframe');
+        f.allow = 'autoplay; encrypted-media; picture-in-picture';
+        f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+        f.src = 'https://www.youtube-nocookie.com/embed/' + key +
+            '?autoplay=1&mute=' + (muted ? 1 : 0) +
+            '&controls=0&loop=1&playlist=' + key +
+            '&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0' +
+            '&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
+        f.addEventListener('load', function () {
+            try { f.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), '*'); } catch (e) { /* ignore */ }
+            setTimeout(function () { f.classList.add('od-ready'); }, 700);
+        });
+        rec.iframe = f;
+        rec.paused = false;
+        rec.stage.appendChild(f);
     }
 
     function detach(rec) {
@@ -383,11 +421,11 @@
         if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { return; } }
         if (d && d.event === 'onError') {
             var rec = active;
-            lsSet(CACHE_PREFIX + rec.item.Id, NONE);
-            rec.key = null;
             rec.iframe.remove();
             rec.iframe = null;
-            setTag(rec, L('noTrailer'));
+            rec.ki = (rec.ki || 0) + 1;
+            if (rec.keys && rec.ki < rec.keys.length) play(rec);
+            else setTag(rec, L('noTrailer'));
         }
     });
 

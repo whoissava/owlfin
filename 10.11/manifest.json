@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.9.2.0",
+                "changelog": "1.9.2.0: fix JellyTok: trailer non trovati (cache sporca, ricerca TMDB per titolo, piu candidati per titolo)\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.9.2.0.zip",
+                "checksum": "e58d6d425cbc05e066b32c517b188f5b",
+                "timestamp": "2026-10-17T18:41:01Z"
+            },
+            {
                 "version": "1.9.1.0",
                 "changelog": "1.9.1.0: fix JellyTok: richieste API piu robuste (Fields non validi), errore reale mostrato a schermo\n",
                 "targetAbi": "10.11.0.0",
