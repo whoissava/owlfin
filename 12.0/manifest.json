@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.6.1.0",
+                "changelog": "2.6.1.0: fix JellyTok: richieste API piu robuste (Fields non validi), errore reale mostrato a schermo\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.6.1.0.zip",
+                "checksum": "66156f8a156c8115856322304e38081a",
+                "timestamp": "2026-10-17T16:08:39Z"
+            },
+            {
                 "version": "2.6.0.0",
                 "changelog": "2.6.0.0: aggiunto JellyTok (Scopri): feed trailer a schermo intero stile TikTok (voce nel menu laterale, titoli casuali dalla libreria a blocchi di 20)\n",
                 "targetAbi": "12.0.0.0",

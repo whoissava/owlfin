@@ -11,7 +11,8 @@
     var PREFETCH_AT = 5;
     var CACHE_PREFIX = 'owlfin_discover_trailer_v2_';
     var NONE = '__NONE__';
-    var FIELDS = 'Overview,Genres,ProviderIds,RemoteTrailers,ProductionYear,OfficialRating,CommunityRating,BackdropImageTags';
+    var FIELDS = 'Overview,Genres,ProviderIds,RemoteTrailers';
+    var lastErr = '';
 
     var LANG = ((navigator.language || 'it').split('-')[0] === 'it') ? 'it' : 'en';
     var STR = {
@@ -51,27 +52,39 @@
     function fetchAllIds() {
         if (ids) return Promise.resolve(ids);
         var c = api();
-        return c.getItems(c.getCurrentUserId(), {
-            IncludeItemTypes: 'Movie,Series',
-            Recursive: true,
-            Limit: 5000,
-            SortBy: 'Random',
-            EnableImages: false,
-            EnableUserData: false,
-            EnableTotalRecordCount: false
-        }).then(function (r) {
-            ids = shuffle((r.Items || []).map(function (i) { return i.Id; }));
-            return ids;
-        });
+        var uid = c.getCurrentUserId();
+        function toIds(r) {
+            var arr = (r && r.Items) ? r.Items : (Array.isArray(r) ? r : []);
+            return arr.map(function (i) { return i.Id; }).filter(Boolean);
+        }
+        return Promise.resolve(c.getItems(uid, { IncludeItemTypes: 'Movie,Series', Recursive: true, SortBy: 'Random', Limit: 5000 }))
+            .then(toIds)
+            .catch(function (e) {
+                console.warn('[Owlfin JellyTok] richiesta ids fallita, riprovo', e);
+                lastErr = 'ids: ' + (e && (e.message || e.status) || e);
+                return Promise.resolve(c.getItems(uid, { IncludeItemTypes: 'Movie,Series', Recursive: true })).then(toIds);
+            })
+            .then(function (list) {
+                ids = shuffle(list);
+                return ids;
+            });
     }
 
     function fetchItems(list) {
         var c = api();
-        return c.getItems(c.getCurrentUserId(), { Ids: list.join(','), Fields: FIELDS, EnableUserData: false }).then(function (r) {
+        var uid = c.getCurrentUserId();
+        function ordered(r) {
             var map = {};
-            (r.Items || []).forEach(function (i) { map[i.Id] = i; });
+            ((r && r.Items) || []).forEach(function (i) { map[i.Id] = i; });
             return list.map(function (id) { return map[id]; }).filter(Boolean);
-        });
+        }
+        return Promise.resolve(c.getItems(uid, { Ids: list.join(','), Fields: FIELDS }))
+            .then(ordered)
+            .catch(function (e) {
+                console.warn('[Owlfin JellyTok] richiesta dettagli fallita, riprovo', e);
+                lastErr = 'items: ' + (e && (e.message || e.status) || e);
+                return Promise.resolve(c.getItems(uid, { Ids: list.join(',') })).then(ordered);
+            });
     }
 
     function ytIdFromUrl(u) {
@@ -214,11 +227,15 @@
             if (token !== sessionToken) return;
             if (!list.length) { feed.innerHTML = ''; feed.appendChild(el('div', 'od-status', esc(L('empty')))); return; }
             feed.innerHTML = '';
-            return loadBlock(token);
+            return loadBlock(token).then(function () {
+                if (token === sessionToken && !cards.length) {
+                    feed.appendChild(el('div', 'od-status', esc(L('empty') + (lastErr ? ' [' + lastErr + ']' : ''))));
+                }
+            });
         }).catch(function (e) {
-            console.warn('[Owlfin Discover]', e);
+            console.warn('[Owlfin JellyTok]', e);
             feed.innerHTML = '';
-            feed.appendChild(el('div', 'od-status', esc(L('empty'))));
+            feed.appendChild(el('div', 'od-status', esc(L('empty') + ' [' + (e && (e.message || e.status) || e) + ']')));
         });
     }
 
@@ -252,7 +269,7 @@
         return fetchItems(slice).then(function (items) {
             if (token !== sessionToken) return;
             items.forEach(function (it) { addCard(it); });
-        }).catch(function (e) { console.warn('[Owlfin Discover]', e); })
+        }).catch(function (e) { console.warn('[Owlfin JellyTok]', e); lastErr = 'blocco: ' + (e && (e.message || e.status) || e); })
             .then(function () { loading = false; });
     }
 
