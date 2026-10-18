@@ -337,29 +337,70 @@
     // bundle del client stesso, non da un tema - .MuiDrawer-paper è il pannello,
     // .MuiListItemButton-root le singole voci, .MuiListSubheader-root le
     // intestazioni di sezione come "Librerie".
+    // Sezione "Owlfin" nel menu laterale di Jellyfin 12 (MUI): subito dopo Home/Preferiti, con lo stesso
+    // aspetto delle voci native (si clona una voce vera del menu, cosi' prende le classi del client).
+    function owlfinMenuAdd(paper, id, order, icon, label, onClick) {
+        if (document.getElementById(id)) return;
+        var all = Array.prototype.slice.call(paper.querySelectorAll('.MuiListItemButton-root'));
+        var natives = all.filter(function (n) { return !n.closest('[data-owlfin-order]'); });
+        var ref = natives[1] || natives[0] || null;
+        var anchor = ref ? (ref.closest('li') || ref) : null;
+
+        var head = document.getElementById('owlfin-menu-head');
+        if (!head) {
+            var sub = Array.prototype.slice.call(paper.querySelectorAll('.MuiListSubheader-root'))
+                .filter(function (n) { return n.id !== 'owlfin-menu-head' && n.id !== 'gb-mui-subheader'; })[0];
+            head = sub ? sub.cloneNode(false) : document.createElement('div');
+            head.removeAttribute('id');
+            if (!sub) {
+                head.className = 'MuiListSubheader-root';
+                head.style.cssText = 'padding:16px 20px 4px;list-style:none;';
+            }
+            head.id = 'owlfin-menu-head';
+            head.textContent = 'Owlfin';
+            if (anchor) anchor.insertAdjacentElement('afterend', head); else paper.appendChild(head);
+        }
+
+        var unit = null, btn = null;
+        if (ref) {
+            unit = (ref.parentElement && ref.parentElement.tagName === 'LI') ? ref.parentElement : ref;
+            unit = unit.cloneNode(true);
+            btn = unit.matches('.MuiListItemButton-root') ? unit : unit.querySelector('.MuiListItemButton-root');
+        }
+        var textEl = btn && (btn.querySelector('.MuiListItemText-primary') || btn.querySelector('.MuiListItemText-root'));
+        if (!unit || !btn || !textEl) {
+            unit = document.createElement('div');
+            unit.className = 'MuiListItemButton-root';
+            unit.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;width:85%;margin:3px auto;list-style:none;';
+            unit.innerHTML = '<span class="material-icons" style="font-size:1.35rem;opacity:.8;">' + icon + '</span><span>' + String(label).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>';
+            btn = unit;
+        } else {
+            Array.prototype.forEach.call(unit.querySelectorAll('[id]'), function (n) { n.removeAttribute('id'); });
+            btn.removeAttribute('href');
+            btn.removeAttribute('aria-current');
+            btn.classList.remove('Mui-selected', 'active');
+            var ic = btn.querySelector('.MuiListItemIcon-root');
+            var span = '<span class="material-icons" style="font-size:1.5rem;">' + icon + '</span>';
+            if (ic) ic.innerHTML = span; else btn.insertAdjacentHTML('afterbegin', span);
+            textEl.textContent = label;
+        }
+        unit.id = id;
+        unit.setAttribute('data-owlfin-order', String(order));
+        btn.setAttribute('role', 'button');
+        btn.tabIndex = 0;
+        btn.style.cursor = 'pointer';
+        var go = function (ev) { ev.preventDefault(); ev.stopPropagation(); onClick(); };
+        btn.addEventListener('click', go);
+        btn.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') go(ev); });
+
+        var mine = Array.prototype.slice.call(paper.querySelectorAll('[data-owlfin-order]'));
+        var next = mine.filter(function (n) { return Number(n.getAttribute('data-owlfin-order')) > order; })[0];
+        if (next) next.insertAdjacentElement('beforebegin', unit);
+        else (mine[mine.length - 1] || head).insertAdjacentElement('afterend', unit);
+    }
+
     function injectMuiMenuEntry(muiDrawer) {
-        if (document.getElementById("gb-mui-drawer-item")) return;
-
-        const subheader = document.createElement("div");
-        subheader.id = "gb-mui-subheader";
-        subheader.className = "MuiListSubheader-root";
-        subheader.textContent = "Generi";
-        subheader.style.cssText = "padding:16px 20px 4px;list-style:none;";
-
-        const item = document.createElement("div");
-        item.id = "gb-mui-drawer-item";
-        item.className = "MuiListItemButton-root";
-        item.setAttribute("role", "button");
-        item.tabIndex = 0;
-        item.style.cssText = "display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;width:85%;margin:3px auto;list-style:none;";
-        item.innerHTML = '<span class="material-icons" style="font-size:1.35rem;opacity:.8;">theaters</span><span>Sfoglia Generi</span>';
-
-        const activate = e => { e.preventDefault(); e.stopPropagation(); openOverlay(); };
-        item.addEventListener("click", activate);
-        item.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") activate(e); });
-
-        muiDrawer.appendChild(subheader);
-        muiDrawer.appendChild(item);
+        owlfinMenuAdd(muiDrawer, "gb-mui-drawer-item", 1, "theaters", "Sfoglia Generi", openOverlay);
     }
 
     // Client classico (10.11 e precedenti): struttura legacy con .mainDrawer.
@@ -376,7 +417,7 @@
 
         const label = document.createElement("div");
         label.className = "gb-section-label";
-        label.textContent = "Generi";
+        label.textContent = "Owlfin";
 
         const btn = document.createElement("button");
         btn.id = "gb-drawer-btn";
@@ -411,6 +452,13 @@
     setTimeout(injectMenuEntry, 1000);
     setTimeout(injectMenuEntry, 2500);
     setTimeout(injectMenuEntry, 4000);
+
+    // Il drawer di Jellyfin 12 viene montato/smontato: appena compare lo si riempie.
+    try {
+        var obsT = 0;
+        new MutationObserver(function () { clearTimeout(obsT); obsT = setTimeout(injectMenuEntry, 150); })
+            .observe(document.body, { childList: true });
+    } catch (e) { /* nessun problema: restano i timer */ }
 
     window.addEventListener("hashchange", e => {
         if (location.hash.toLowerCase().includes("genrebrowser")) {

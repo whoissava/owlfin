@@ -1002,17 +1002,70 @@
     });
 
     // ---------- voce nel menu laterale ----------
+    // Sezione "Owlfin" nel menu laterale di Jellyfin 12 (MUI): subito dopo Home/Preferiti, con lo stesso
+    // aspetto delle voci native (si clona una voce vera del menu, cosi' prende le classi del client).
+    function owlfinMenuAdd(paper, id, order, icon, label, onClick) {
+        if (document.getElementById(id)) return;
+        var all = Array.prototype.slice.call(paper.querySelectorAll('.MuiListItemButton-root'));
+        var natives = all.filter(function (n) { return !n.closest('[data-owlfin-order]'); });
+        var ref = natives[1] || natives[0] || null;
+        var anchor = ref ? (ref.closest('li') || ref) : null;
+
+        var head = document.getElementById('owlfin-menu-head');
+        if (!head) {
+            var sub = Array.prototype.slice.call(paper.querySelectorAll('.MuiListSubheader-root'))
+                .filter(function (n) { return n.id !== 'owlfin-menu-head' && n.id !== 'gb-mui-subheader'; })[0];
+            head = sub ? sub.cloneNode(false) : document.createElement('div');
+            head.removeAttribute('id');
+            if (!sub) {
+                head.className = 'MuiListSubheader-root';
+                head.style.cssText = 'padding:16px 20px 4px;list-style:none;';
+            }
+            head.id = 'owlfin-menu-head';
+            head.textContent = 'Owlfin';
+            if (anchor) anchor.insertAdjacentElement('afterend', head); else paper.appendChild(head);
+        }
+
+        var unit = null, btn = null;
+        if (ref) {
+            unit = (ref.parentElement && ref.parentElement.tagName === 'LI') ? ref.parentElement : ref;
+            unit = unit.cloneNode(true);
+            btn = unit.matches('.MuiListItemButton-root') ? unit : unit.querySelector('.MuiListItemButton-root');
+        }
+        var textEl = btn && (btn.querySelector('.MuiListItemText-primary') || btn.querySelector('.MuiListItemText-root'));
+        if (!unit || !btn || !textEl) {
+            unit = document.createElement('div');
+            unit.className = 'MuiListItemButton-root';
+            unit.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;width:85%;margin:3px auto;list-style:none;';
+            unit.innerHTML = '<span class="material-icons" style="font-size:1.35rem;opacity:.8;">' + icon + '</span><span>' + String(label).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>';
+            btn = unit;
+        } else {
+            Array.prototype.forEach.call(unit.querySelectorAll('[id]'), function (n) { n.removeAttribute('id'); });
+            btn.removeAttribute('href');
+            btn.removeAttribute('aria-current');
+            btn.classList.remove('Mui-selected', 'active');
+            var ic = btn.querySelector('.MuiListItemIcon-root');
+            var span = '<span class="material-icons" style="font-size:1.5rem;">' + icon + '</span>';
+            if (ic) ic.innerHTML = span; else btn.insertAdjacentHTML('afterbegin', span);
+            textEl.textContent = label;
+        }
+        unit.id = id;
+        unit.setAttribute('data-owlfin-order', String(order));
+        btn.setAttribute('role', 'button');
+        btn.tabIndex = 0;
+        btn.style.cursor = 'pointer';
+        var go = function (ev) { ev.preventDefault(); ev.stopPropagation(); onClick(); };
+        btn.addEventListener('click', go);
+        btn.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') go(ev); });
+
+        var mine = Array.prototype.slice.call(paper.querySelectorAll('[data-owlfin-order]'));
+        var next = mine.filter(function (n) { return Number(n.getAttribute('data-owlfin-order')) > order; })[0];
+        if (next) next.insertAdjacentElement('beforebegin', unit);
+        else (mine[mine.length - 1] || head).insertAdjacentElement('afterend', unit);
+    }
+
     function injectMuiEntry(muiDrawer) {
-        if (document.getElementById('owlfin-discover-mui')) return;
-        var item = el('div', 'MuiListItemButton-root', '<span class="material-icons" style="font-size:1.35rem;opacity:.8;">explore</span><span>' + esc(L('menu')) + '</span>');
-        item.id = 'owlfin-discover-mui';
-        item.setAttribute('role', 'button');
-        item.tabIndex = 0;
-        item.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;width:85%;margin:3px auto;list-style:none;';
-        var go = function (ev) { ev.preventDefault(); ev.stopPropagation(); openOverlay(); };
-        item.addEventListener('click', go);
-        item.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') go(ev); });
-        muiDrawer.appendChild(item);
+        owlfinMenuAdd(muiDrawer, 'owlfin-discover-mui', 2, 'explore', L('menu'), openOverlay);
     }
 
     function injectLegacyEntry(drawer) {
@@ -1024,7 +1077,8 @@
         var btn = el('button', null, '<span class="od-di">explore</span><span class="od-dt">' + esc(L('menu')) + '</span>');
         btn.id = 'owlfin-discover-btn';
         btn.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopImmediatePropagation(); openOverlay(); }, true);
-        drawer.insertBefore(btn, homeLink.nextSibling);
+        var sec = document.getElementById('gb-drawer-section');
+        if (sec) sec.appendChild(btn); else drawer.insertBefore(btn, homeLink.nextSibling);
     }
 
     function injectMenuEntry() {
@@ -1039,6 +1093,13 @@
     document.addEventListener('viewshow', function () { setTimeout(injectMenuEntry, 400); });
     document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(injectMenuEntry, 400); });
     [1000, 2500, 4000, 8000].forEach(function (ms) { setTimeout(injectMenuEntry, ms); });
+
+    // Il drawer di Jellyfin 12 viene montato/smontato: appena compare lo si riempie.
+    try {
+        var obsT = 0;
+        new MutationObserver(function () { clearTimeout(obsT); obsT = setTimeout(injectMenuEntry, 150); })
+            .observe(document.body, { childList: true });
+    } catch (e) { /* nessun problema: restano i timer */ }
 
     window.owlfinJellytokOpen = openOverlay;
 })();

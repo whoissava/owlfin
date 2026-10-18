@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.8.6.0",
+                "changelog": "2.8.6.0: Menu laterale: sezione 'Owlfin' subito sotto Home e Preferiti con 'Sfoglia Generi' e 'Scopri' (stesso stile delle voci native); 'Di Tendenza Ora' compare al primo avvio senza ricaricare (attende client e rete pronti, ritenta con pausa breve invece di 60 secondi)\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.8.6.0.zip",
+                "checksum": "9199f71135ca193b8230931de4ca5718",
+                "timestamp": "2026-10-18T21:58:25Z"
+            },
+            {
                 "version": "2.8.5.0",
                 "changelog": "2.8.5.0: Le richieste fatte da utenti non admin arrivano su Seerr a nome loro e restano in attesa di approvazione (gli admin restano approvati subito); utenti Jellyfin non ancora in Seerr importati in automatico; avviso 'in attesa di approvazione' in JellyTok\n",
                 "targetAbi": "12.0.0.0",

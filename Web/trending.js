@@ -80,7 +80,7 @@
 
     // ====================== CONFIG ======================
 
-    const TMDB_API_KEY = window.__owlfin_tmdb_key__ || '';
+    const tmdbKey = () => window.__owlfin_tmdb_key__ || '';
     const TMDB_LANG = 'it-IT';
 
     const CACHE_KEY = 'owlhub_trending_now_cache_v4';
@@ -119,6 +119,32 @@
         return window.ApiClient;
     }
 
+    // Al primo avvio il client Jellyfin (utente, token) e la rete possono non essere ancora pronti:
+    // in quel caso non e' un errore, si riprova al giro successivo.
+    function clientReady() {
+        const c = getApiClient();
+        try {
+            return !!(c && c.getCurrentUserId && c.getCurrentUserId() && (!c.accessToken || c.accessToken()));
+        } catch (e) {
+            return false;
+        }
+    }
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    async function withRetry(fn, tries, delay) {
+        let last;
+        for (let i = 0; i < tries; i++) {
+            try {
+                return await fn();
+            } catch (e) {
+                last = e;
+                if (i < tries - 1) await sleep(delay * (i + 1));
+            }
+        }
+        throw last;
+    }
+
 
     // =====================================================
     // TMDB TRENDING
@@ -127,8 +153,8 @@
     async function fetchTrendingFromTMDB() {
 
         const [moviesRes, tvRes] = await Promise.all([
-            fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${TMDB_API_KEY}&language=${TMDB_LANG}`),
-            fetch(`https://api.themoviedb.org/3/trending/tv/week?api_key=${TMDB_API_KEY}&language=${TMDB_LANG}`)
+            fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey()}&language=${TMDB_LANG}`),
+            fetch(`https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey()}&language=${TMDB_LANG}`)
         ]);
 
         if (!moviesRes.ok || !tvRes.ok) {
@@ -349,7 +375,7 @@
             const type = item.Type === 'Series' ? 'tv' : 'movie';
 
             const res = await fetch(
-                `https://api.themoviedb.org/3/${type}/${encodeURIComponent(tmdbId)}/videos?api_key=${TMDB_API_KEY}&language=${TMDB_LANG}`
+                `https://api.themoviedb.org/3/${type}/${encodeURIComponent(tmdbId)}/videos?api_key=${tmdbKey()}&language=${TMDB_LANG}`
             );
 
             if (!res.ok) throw new Error('TMDB videos HTTP ' + res.status);
@@ -978,6 +1004,7 @@
     let memDay = '';
     let inflight = null;
     let failedAt = 0;
+    let failCount = 0;
 
     async function loadData() {
         if (memItems && memDay === todayKey()) return memItems;
@@ -989,25 +1016,31 @@
             return memItems;
         }
 
-        // Dopo un errore aspetta un minuto prima di riprovare.
-        if (Date.now() - failedAt < 60000) return null;
+        // Client o chiave non ancora pronti (primo avvio): niente errore, si riprova al prossimo giro.
+        if (!clientReady() || !tmdbKey()) return null;
+
+        // Dopo un errore backoff breve e crescente (5 s, 10 s ... max 30 s).
+        if (Date.now() - failedAt < Math.min(5000 * failCount, 30000)) return null;
 
         if (!inflight) {
             inflight = (async () => {
                 try {
-                    const tmdbList = await fetchTrendingFromTMDB();
-                    let matched = await matchLibraryItems(tmdbList);
+                    const tmdbList = await withRetry(fetchTrendingFromTMDB, 3, 1500);
+                    let matched = await withRetry(() => matchLibraryItems(tmdbList), 2, 1500);
                     matched = await enrichWithVisuals(matched);
                     if (matched.length) {
                         setCache(matched);
                         memItems = matched;
                         memDay = todayKey();
+                        failCount = 0;
                     } else {
                         failedAt = Date.now();
+                        failCount++;
                     }
                     return matched;
                 } catch (e) {
                     failedAt = Date.now();
+                    failCount++;
                     console.error('[OwlHub Trending Now]', e);
                     return null;
                 } finally {
@@ -1055,6 +1088,8 @@
 
     // Rete di sicurezza: se qualcosa sfugge, entro pochi secondi ricompare.
     setInterval(() => { if (!document.hidden) ensure(); }, 3000);
+
+    window.addEventListener('online', () => { failedAt = 0; failCount = 0; burst(); });
 
     setTimeout(ensure, 800);
 

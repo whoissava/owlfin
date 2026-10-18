@@ -5,7 +5,7 @@
   },
   "projects": {
     "/home/sava/jellyplugin/Owlfin/Jellyfin.Plugin.Owlfin.csproj": {
-      "version": "2.8.5",
+      "version": "2.8.6",
       "restore": {
         "projectUniqueName": "/home/sava/jellyplugin/Owlfin/Jellyfin.Plugin.Owlfin.csproj",
         "projectName": "Jellyfin.Plugin.Owlfin",
