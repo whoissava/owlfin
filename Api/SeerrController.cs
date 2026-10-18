@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +30,10 @@ public class SeerrController : ControllerBase
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
+
+    // Jellyfin user id (formato "N") -> id utente Seerr; evita di rileggere l'elenco utenti a ogni richiesta.
+    private static readonly Dictionary<string, int> SeerrUserCache = new Dictionary<string, int>();
+    private static readonly SemaphoreSlim SeerrUserLock = new SemaphoreSlim(1, 1);
 
     private readonly ILogger<SeerrController> _logger;
 
@@ -210,7 +216,8 @@ public class SeerrController : ControllerBase
     [HttpPost("Request")]
     public async Task<ActionResult> CreateRequest()
     {
-        if (!await IsAuthenticatedAsync().ConfigureAwait(false))
+        (bool authOk, Guid jellyfinUserId, bool isAdmin) = await AuthenticateAsync().ConfigureAwait(false);
+        if (!authOk)
         {
             return Unauthorized();
         }
@@ -238,18 +245,53 @@ public class SeerrController : ControllerBase
             return BadRequest();
         }
 
-        string payload = kind == "tv"
-            ? JsonSerializer.Serialize(new { mediaType = kind, mediaId, seasons = "all" })
-            : JsonSerializer.Serialize(new { mediaType = kind, mediaId });
-
         try
         {
+            // La richiesta parte a nome dell'utente Jellyfin che la fa: Seerr applica i suoi permessi,
+            // quindi per un utente non admin finisce "in attesa di approvazione" (gli admin sono approvati subito).
+            int seerrUserId = 0;
+            if (jellyfinUserId != Guid.Empty)
+            {
+                try
+                {
+                    seerrUserId = await ResolveSeerrUserAsync(url, key, jellyfinUserId).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Owlfin Seerr: impossibile associare l'utente Jellyfin a Seerr");
+                }
+            }
+
+            if (seerrUserId == 0 && !isAdmin)
+            {
+                // Mai creare la richiesta con l'utente della API key (admin, approvata in automatico) per un utente normale.
+                return Fail("Request", null, "Utente non presente in Seerr: importalo da Seerr (Utenti > Importa utenti Jellyfin)");
+            }
+
+            var payloadMap = new Dictionary<string, object>
+            {
+                ["mediaType"] = kind ?? string.Empty,
+                ["mediaId"] = mediaId
+            };
+            if (kind == "tv")
+            {
+                payloadMap["seasons"] = "all";
+            }
+
+            if (seerrUserId > 0)
+            {
+                payloadMap["userId"] = seerrUserId;
+            }
+
+            string payload = JsonSerializer.Serialize(payloadMap);
             (int code, JsonDocument? doc) = await SendAsync(HttpMethod.Post, $"{url}/api/v1/request", key, payload).ConfigureAwait(false);
+            int requestStatus = doc is null ? 0 : Int(doc.RootElement, "status");
             doc?.Dispose();
 
             if (code >= 200 && code < 300)
             {
-                return new JsonResult(new { ok = true }, CamelCaseOptions);
+                // status Seerr: 1 = in attesa di approvazione, 2 = approvata
+                return new JsonResult(new { ok = true, pending = requestStatus == 1 }, CamelCaseOptions);
             }
 
             if (code == 409)
@@ -271,6 +313,15 @@ public class SeerrController : ControllerBase
     /// </summary>
     private async Task<bool> IsAuthenticatedAsync()
     {
+        (bool ok, _, _) = await AuthenticateAsync().ConfigureAwait(false);
+        return ok;
+    }
+
+    /// <summary>
+    /// Come <see cref="IsAuthenticatedAsync"/>, ma restituisce anche l'id dell'utente Jellyfin e se e' amministratore.
+    /// </summary>
+    private async Task<(bool Ok, Guid UserId, bool IsAdmin)> AuthenticateAsync()
+    {
         foreach (string? scheme in new string?[] { "CustomAuthentication", null })
         {
             try
@@ -278,10 +329,32 @@ public class SeerrController : ControllerBase
                 AuthenticateResult result = scheme is null
                     ? await HttpContext.AuthenticateAsync().ConfigureAwait(false)
                     : await HttpContext.AuthenticateAsync(scheme).ConfigureAwait(false);
-                if (result.Succeeded)
+                if (!result.Succeeded)
                 {
-                    return true;
+                    continue;
                 }
+
+                Guid userId = Guid.Empty;
+                bool isAdmin = false;
+                if (result.Principal is not null)
+                {
+                    foreach (Claim c in result.Principal.Claims)
+                    {
+                        if (userId == Guid.Empty
+                            && (c.Type.Contains("UserId", StringComparison.OrdinalIgnoreCase) || c.Type == ClaimTypes.NameIdentifier)
+                            && Guid.TryParse(c.Value, out Guid g))
+                        {
+                            userId = g;
+                        }
+
+                        if (c.Type == ClaimTypes.Role && string.Equals(c.Value, "Administrator", StringComparison.OrdinalIgnoreCase))
+                        {
+                            isAdmin = true;
+                        }
+                    }
+                }
+
+                return (true, userId, isAdmin);
             }
             catch (Exception ex)
             {
@@ -289,7 +362,86 @@ public class SeerrController : ControllerBase
             }
         }
 
-        return false;
+        return (false, Guid.Empty, false);
+    }
+
+    /// <summary>
+    /// Trova l'utente Seerr che corrisponde all'utente Jellyfin; se manca lo importa da Jellyfin.
+    /// Restituisce 0 se non riesce.
+    /// </summary>
+    private async Task<int> ResolveSeerrUserAsync(string url, string key, Guid jellyfinUserId)
+    {
+        string want = jellyfinUserId.ToString("N");
+        await SeerrUserLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (SeerrUserCache.TryGetValue(want, out int cached))
+            {
+                return cached;
+            }
+
+            int found = 0;
+            for (int skip = 0; skip < 5000 && found == 0; skip += 100)
+            {
+                (int listCode, JsonDocument? listDoc) = await SendAsync(HttpMethod.Get, $"{url}/api/v1/user?take=100&skip={skip}", key, null).ConfigureAwait(false);
+                using (listDoc)
+                {
+                    if (listCode < 200 || listCode >= 300 || listDoc is null
+                        || !listDoc.RootElement.TryGetProperty("results", out JsonElement arr) || arr.ValueKind != JsonValueKind.Array)
+                    {
+                        break;
+                    }
+
+                    int count = 0;
+                    foreach (JsonElement u in arr.EnumerateArray())
+                    {
+                        count++;
+                        string? jf = Str(u, "jellyfinUserId");
+                        if (jf is not null && string.Equals(jf.Replace("-", string.Empty), want, StringComparison.OrdinalIgnoreCase))
+                        {
+                            found = Int(u, "id");
+                            break;
+                        }
+                    }
+
+                    if (count < 100)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (found == 0)
+            {
+                string body = JsonSerializer.Serialize(new { jellyfinUserIds = new[] { jellyfinUserId.ToString() } });
+                (int impCode, JsonDocument? impDoc) = await SendAsync(HttpMethod.Post, $"{url}/api/v1/user/import-from-jellyfin", key, body).ConfigureAwait(false);
+                using (impDoc)
+                {
+                    if (impCode >= 200 && impCode < 300 && impDoc is not null && impDoc.RootElement.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (JsonElement u in impDoc.RootElement.EnumerateArray())
+                        {
+                            found = Int(u, "id");
+                            if (found > 0)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (found > 0)
+            {
+                SeerrUserCache[want] = found;
+            }
+
+            return found;
+        }
+        finally
+        {
+            SeerrUserLock.Release();
+        }
     }
 
     /// <summary>

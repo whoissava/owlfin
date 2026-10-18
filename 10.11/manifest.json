@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.11.5.0",
+                "changelog": "1.11.5.0: Le richieste fatte da utenti non admin arrivano su Seerr a nome loro e restano in attesa di approvazione (gli admin restano approvati subito); utenti Jellyfin non ancora in Seerr importati in automatico; avviso 'in attesa di approvazione' in JellyTok\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.11.5.0.zip",
+                "checksum": "de8f2b5d1692cb9db09d6c974dcf4512",
+                "timestamp": "2026-10-18T17:07:47Z"
+            },
+            {
                 "version": "1.11.4.0",
                 "changelog": "1.11.4.0: JellyTok ottimizzato senza cambiare l'aspetto: immagini caricate solo per le schede vicine, un solo player alla volta creato solo quando ci si ferma e liberato davvero, spinner nascosti fermi, player spento con l'app in background\n",
                 "targetAbi": "10.11.0.0",

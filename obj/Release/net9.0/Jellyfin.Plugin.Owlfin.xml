@@ -98,6 +98,17 @@
             Jellyfin): prova lo schema "CustomAuthentication" e poi quello predefinito.
             </summary>
         </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.AuthenticateAsync">
+            <summary>
+            Come <see cref="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.IsAuthenticatedAsync"/>, ma restituisce anche l'id dell'utente Jellyfin e se e' amministratore.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.ResolveSeerrUserAsync(System.String,System.String,System.Guid)">
+            <summary>
+            Trova l'utente Seerr che corrisponde all'utente Jellyfin; se manca lo importa da Jellyfin.
+            Restituisce 0 se non riesce.
+            </summary>
+        </member>
         <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.Fail(System.String,System.Exception,System.String)">
             <summary>
             Registra l'errore nel log di Jellyfin e risponde 502 con un breve messaggio leggibile dal client.

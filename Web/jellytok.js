@@ -27,7 +27,7 @@
             loading: 'Carico i titoli…', emptyLib: 'Nessun titolo trovato nella libreria.',
             emptyReq: 'Nessun titolo da richiedere al momento.', noTrailer: 'Trailer non disponibile',
             close: 'Chiudi', sound: 'Audio', fav: 'Aggiungi ai preferiti', unfav: 'Rimuovi dai preferiti',
-            swipe: 'Scorri', reqOk: 'Richiesta inviata a Seerr', reqFail: 'Richiesta non riuscita, riprova tra poco',
+            swipe: 'Scorri', reqOk: 'Richiesta inviata a Seerr', reqPending: 'Richiesta inviata: in attesa di approvazione', reqFail: 'Richiesta non riuscita, riprova tra poco',
             audioBlocked: 'Audio bloccato dal sistema, resta disattivato', tapPlay: 'Tocca per avviare',
             setupTitle: 'Collega Seerr',
             setupBody: 'Per richiedere film e serie che non sono ancora sul server inserisci URL e API key di Seerr in Dashboard → Plugin → Owlfin → Credenziali API.',
@@ -43,7 +43,7 @@
             loading: 'Loading titles…', emptyLib: 'No titles found in the library.',
             emptyReq: 'Nothing to request right now.', noTrailer: 'Trailer not available',
             close: 'Close', sound: 'Sound', fav: 'Add to favorites', unfav: 'Remove from favorites',
-            swipe: 'Swipe', reqOk: 'Request sent to Seerr', reqFail: 'Request failed, try again soon',
+            swipe: 'Swipe', reqOk: 'Request sent to Seerr', reqPending: 'Request sent: awaiting approval', reqFail: 'Request failed, try again soon',
             audioBlocked: 'Sound blocked by the system, staying muted', tapPlay: 'Tap to play',
             setupTitle: 'Connect Seerr',
             setupBody: 'To request movies and shows that are not on the server yet, enter your Seerr URL and API key in Dashboard → Plugins → Owlfin → API credentials.',
@@ -766,8 +766,8 @@
         if (rec.reqState) return;
         rec.reqState = 'busy'; setReqButton(rec);
         jf('Owlfin/Seerr/Request', { method: 'POST', body: JSON.stringify({ mediaType: rec.e.type, mediaId: rec.e.tmdbId }) })
-            .then(function () { rec.reqState = 'done'; setReqButton(rec); toast(L('reqOk')); })
-            .catch(function (err) { console.warn('[Owlfin JellyTok] richiesta', err); rec.reqState = null; setReqButton(rec); toast(L('reqFail')); });
+            .then(function (r) { rec.reqState = 'done'; setReqButton(rec); toast(L(r && r.pending ? 'reqPending' : 'reqOk')); })
+            .catch(function (err) { console.warn('[Owlfin JellyTok] richiesta', err); rec.reqState = null; setReqButton(rec); toast(err && err.detail ? err.detail : L('reqFail')); });
     }
 
     function setFav(rec, val) {
