@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.8.2.0",
+                "changelog": "2.8.2.0: Fix tab Richiedi su Jellyfin 12: la policy di autorizzazione DefaultAuthorization non esiste piu, ora il token viene verificato dal plugin stesso\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.8.2.0.zip",
+                "checksum": "6ac79cc6e4ee1cc6d59bf3d6e02ff61e",
+                "timestamp": "2026-10-18T11:54:47Z"
+            },
+            {
                 "version": "2.8.1.0",
                 "changelog": "2.8.1.0: Fix tab Richiedi: le risposte del plugin Seerr erano in PascalCase e il client non le leggeva; ora sono camelCase, gli errori mostrano il motivo e finiscono nel log di Jellyfin\n",
                 "targetAbi": "12.0.0.0",

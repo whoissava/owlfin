@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -16,11 +16,10 @@ namespace Jellyfin.Plugin.Owlfin.Api;
 /// Proxy verso Seerr (Jellyseerr/Overseerr) per la tab "Richiedi" di JellyTok.
 /// L'URL e la API key di Seerr restano solo in <see cref="Configuration.PluginConfiguration"/>:
 /// il browser parla soltanto con questi endpoint e non le vede mai.
-/// Servono utenti Jellyfin autenticati.
+/// Servono utenti Jellyfin autenticati: il token viene verificato in <see cref="IsAuthenticatedAsync"/>.
 /// </summary>
 [ApiController]
 [Route("Owlfin/Seerr")]
-[Authorize(Policy = "DefaultAuthorization")]
 public class SeerrController : ControllerBase
 {
     private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
@@ -46,8 +45,13 @@ public class SeerrController : ControllerBase
     /// </summary>
     /// <returns>Un oggetto JSON <c>{ "enabled": true|false }</c>.</returns>
     [HttpGet("Status")]
-    public ActionResult GetStatus()
+    public async Task<ActionResult> GetStatus()
     {
+        if (!await IsAuthenticatedAsync().ConfigureAwait(false))
+        {
+            return Unauthorized();
+        }
+
         try
         {
             return new JsonResult(new { enabled = TryGetConfig(out _, out _) }, CamelCaseOptions);
@@ -68,6 +72,11 @@ public class SeerrController : ControllerBase
     [HttpGet("Discover")]
     public async Task<ActionResult> Discover([FromQuery] string? kind, [FromQuery] int page = 1, [FromQuery] string? lang = null)
     {
+        if (!await IsAuthenticatedAsync().ConfigureAwait(false))
+        {
+            return Unauthorized();
+        }
+
         if (!TryGetConfig(out string url, out string key))
         {
             return NotFound();
@@ -144,6 +153,11 @@ public class SeerrController : ControllerBase
     [HttpGet("Videos")]
     public async Task<ActionResult> Videos([FromQuery] string? kind, [FromQuery] int id, [FromQuery] string? lang = null)
     {
+        if (!await IsAuthenticatedAsync().ConfigureAwait(false))
+        {
+            return Unauthorized();
+        }
+
         if (!TryGetConfig(out string url, out string key))
         {
             return NotFound();
@@ -196,6 +210,11 @@ public class SeerrController : ControllerBase
     [HttpPost("Request")]
     public async Task<ActionResult> CreateRequest()
     {
+        if (!await IsAuthenticatedAsync().ConfigureAwait(false))
+        {
+            return Unauthorized();
+        }
+
         if (!TryGetConfig(out string url, out string key))
         {
             return NotFound();
@@ -244,6 +263,33 @@ public class SeerrController : ControllerBase
         {
             return Fail("Request", ex);
         }
+    }
+
+    /// <summary>
+    /// Verifica il token Jellyfin della richiesta. Non usa il nome di una policy (cambia tra le versioni di
+    /// Jellyfin): prova lo schema "CustomAuthentication" e poi quello predefinito.
+    /// </summary>
+    private async Task<bool> IsAuthenticatedAsync()
+    {
+        foreach (string? scheme in new string?[] { "CustomAuthentication", null })
+        {
+            try
+            {
+                AuthenticateResult result = scheme is null
+                    ? await HttpContext.AuthenticateAsync().ConfigureAwait(false)
+                    : await HttpContext.AuthenticateAsync(scheme).ConfigureAwait(false);
+                if (result.Succeeded)
+                {
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Owlfin Seerr: schema di autenticazione {Scheme} non disponibile", scheme ?? "(predefinito)");
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

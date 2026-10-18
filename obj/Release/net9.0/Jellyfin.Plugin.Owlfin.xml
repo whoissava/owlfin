@@ -52,7 +52,7 @@
             Proxy verso Seerr (Jellyseerr/Overseerr) per la tab "Richiedi" di JellyTok.
             L'URL e la API key di Seerr restano solo in <see cref="T:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration"/>:
             il browser parla soltanto con questi endpoint e non le vede mai.
-            Servono utenti Jellyfin autenticati.
+            Servono utenti Jellyfin autenticati: il token viene verificato in <see cref="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.IsAuthenticatedAsync"/>.
             </summary>
         </member>
         <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.#ctor(Microsoft.Extensions.Logging.ILogger{Jellyfin.Plugin.Owlfin.Api.SeerrController})">
@@ -91,6 +91,12 @@
             Per le serie vengono richieste tutte le stagioni.
             </summary>
             <returns>Un oggetto JSON <c>{ "ok": true }</c>.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.IsAuthenticatedAsync">
+            <summary>
+            Verifica il token Jellyfin della richiesta. Non usa il nome di una policy (cambia tra le versioni di
+            Jellyfin): prova lo schema "CustomAuthentication" e poi quello predefinito.
+            </summary>
         </member>
         <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.Fail(System.String,System.Exception,System.String)">
             <summary>
