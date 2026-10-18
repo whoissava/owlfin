@@ -47,6 +47,45 @@
             Appends a new chat message.
             </summary>
         </member>
+        <member name="T:Jellyfin.Plugin.Owlfin.Api.SeerrController">
+            <summary>
+            Proxy verso Seerr (Jellyseerr/Overseerr) per la tab "Richiedi" di JellyTok.
+            L'URL e la API key di Seerr restano solo in <see cref="T:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration"/>:
+            il browser parla soltanto con questi endpoint e non le vede mai.
+            Servono utenti Jellyfin autenticati.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.GetStatus">
+            <summary>
+            Indica se Seerr e' configurato (URL e API key presenti).
+            </summary>
+            <returns>Un oggetto JSON <c>{ "enabled": true|false }</c>.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.Discover(System.String,System.Int32,System.String)">
+            <summary>
+            Elenco di titoli da scoprire (tendenza, film popolari o serie popolari), in forma ridotta.
+            </summary>
+            <param name="kind">"movie", "tv" oppure vuoto per le tendenze miste.</param>
+            <param name="page">Pagina (20 risultati ciascuna).</param>
+            <param name="lang">Lingua dei testi, es. "it" o "en".</param>
+            <returns>Un oggetto JSON con pagina, totale pagine e risultati.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.Videos(System.String,System.Int32,System.String)">
+            <summary>
+            Chiavi YouTube dei trailer di un titolo, lette dai dettagli di Seerr.
+            </summary>
+            <param name="kind">"movie" o "tv".</param>
+            <param name="id">Id TMDB.</param>
+            <param name="lang">Lingua dei testi.</param>
+            <returns>Un oggetto JSON <c>{ "keys": [...] }</c>.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.CreateRequest">
+            <summary>
+            Crea una richiesta in Seerr. Corpo JSON: <c>{ "mediaType": "movie"|"tv", "mediaId": 123 }</c>.
+            Per le serie vengono richieste tutte le stagioni.
+            </summary>
+            <returns>Un oggetto JSON <c>{ "ok": true }</c>.</returns>
+        </member>
         <member name="T:Jellyfin.Plugin.Owlfin.Api.SonarrController">
             <summary>
             Proxies read-only questions to Sonarr -- "what episodes are still to air for this
@@ -185,6 +224,17 @@
             <summary>
             Gets or sets a value indicating whether the full-screen trailer
             feed (jellytok.js) is injected into the web client.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.SeerrUrl">
+            <summary>
+            Gets or sets the base URL of the user's Seerr instance (Jellyseerr/Overseerr),
+            e.g. http://localhost:5055. Called server-side only.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.SeerrApiKey">
+            <summary>
+            Gets or sets the Seerr API key. Used only server-side by the Seerr proxy controller.
             </summary>
         </member>
         <member name="T:Jellyfin.Plugin.Owlfin.Helpers.ChatStorage">

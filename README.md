@@ -15,7 +15,7 @@ Personalizzazioni indipendenti per il client web di Jellyfin, ognuna attivabile 
 | **Chat** | Chat generale tra tutti gli utenti del server, accessibile dal menu laterale |
 | **Di Tendenza Ora** | Sezione orizzontale in Home con card backdrop dei titoli TMDB presenti in libreria. Tocco normale apre il dettaglio Jellyfin, long press avvia il trailer italiano su YouTube direttamente nella card (richiede API key TMDB) |
 | **Griglia poster in ricerca** | Sostituisce i suggerimenti di ricerca con una griglia di locandine casuali dalla libreria |
-| **Scopri (JellyTok)** | Feed a schermo intero di trailer in stile TikTok con titoli casuali dalla libreria, caricati a blocchi di 20. Voce nel menu laterale, X in alto per chiudere. Usa i trailer di Jellyfin o TMDB (opzionale) |
+| **Scopri (JellyTok)** | Feed a schermo intero di trailer in stile TikTok. Tab **Libreria**: titoli casuali presenti sul server, a blocchi di 20, con preferiti (doppio tocco) e filtro Film/Serie. Tab **Richiedi**: titoli di tendenza non ancora in libreria, richiedibili con un tocco via Seerr. Voce nel menu laterale |
 
 ---
 
@@ -24,6 +24,7 @@ Personalizzazioni indipendenti per il client web di Jellyfin, ognuna attivabile 
 - Jellyfin 10.11.x o 12.0.x
 - Plugin [File Transformation](https://github.com/nicknick85/jellyfin-plugin-file-transformation) installato e attivo
 - *(opzionale)* Istanza Sonarr raggiungibile dal server, per la funzione "Prossimo episodio"
+- *(opzionale)* Seerr, Jellyseerr o Overseerr raggiungibile dal server, per la tab "Richiedi" di JellyTok
 - *(opzionale)* API key TMDB gratuita, per le funzioni "Top 10 tendenze" e "Di Tendenza Ora"
 
 ---

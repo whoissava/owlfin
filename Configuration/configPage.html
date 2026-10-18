@@ -153,6 +153,20 @@
                             </div>
                         </div>
 
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="SeerrUrl" data-i18n="owlfin_seerr_url">URL Seerr</label>
+                            <input id="SeerrUrl" name="SeerrUrl" type="text" is="emby-input" placeholder="http://localhost:5055" />
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="SeerrApiKey" data-i18n="owlfin_seerr_key">API key Seerr</label>
+                            <input id="SeerrApiKey" name="SeerrApiKey" type="password" is="emby-input" />
+                            <div class="fieldDescription" data-i18n="owlfin_seerr_desc">
+                                Abilita la tab "Richiedi" di JellyTok. Va bene Seerr, Jellyseerr o Overseerr.
+                            </div>
+                        </div>
+
+
                     </div>
 
                     <div>
@@ -196,6 +210,9 @@
                     owlfin_sonarr_key:       'API key Sonarr',
                     owlfin_tmdb_key:         'API key TMDB',
                     owlfin_tmdb_desc:        'Richiesta da "Di Tendenza Ora". Gratuita su themoviedb.org.',
+                    owlfin_seerr_url:        'URL Seerr',
+                    owlfin_seerr_key:        'API key Seerr',
+                    owlfin_seerr_desc:       'Abilita la tab "Richiedi" di JellyTok. Va bene Seerr, Jellyseerr o Overseerr.',
                     owlfin_save:             'Salva'
                 },
                 en: {
@@ -227,6 +244,9 @@
                     owlfin_sonarr_key:       'Sonarr API key',
                     owlfin_tmdb_key:         'TMDB API key',
                     owlfin_tmdb_desc:        'Required for "Trending Now". Free at themoviedb.org.',
+                    owlfin_seerr_url:        'Seerr URL',
+                    owlfin_seerr_key:        'Seerr API key',
+                    owlfin_seerr_desc:       'Enables the "Request" tab in JellyTok. Works with Seerr, Jellyseerr or Overseerr.',
                     owlfin_save:             'Save'
                 }
             };
@@ -251,6 +271,8 @@
                     ApiClient.getPluginConfiguration(OwlfinConfig.pluginUniqueId).then(function (config) {
                         IDS.forEach(function (id) { q(id).checked = !!config[id]; });
                         q('TmdbApiKey').value   = config.TmdbApiKey   || '';
+                        q('SeerrUrl').value     = config.SeerrUrl     || '';
+                        q('SeerrApiKey').value  = config.SeerrApiKey  || '';
                         q('SonarrUrl').value    = config.SonarrUrl    || '';
                         q('SonarrApiKey').value = config.SonarrApiKey || '';
                         Dashboard.hideLoadingMsg();
@@ -264,6 +286,8 @@
                     ApiClient.getPluginConfiguration(OwlfinConfig.pluginUniqueId).then(function (config) {
                         IDS.forEach(function (id) { config[id] = q(id).checked; });
                         config.TmdbApiKey   = q('TmdbApiKey').value;
+                        config.SeerrUrl     = q('SeerrUrl').value;
+                        config.SeerrApiKey  = q('SeerrApiKey').value;
                         config.SonarrUrl    = q('SonarrUrl').value;
                         config.SonarrApiKey = q('SonarrApiKey').value;
                         ApiClient.updatePluginConfiguration(OwlfinConfig.pluginUniqueId, config).then(function (result) {

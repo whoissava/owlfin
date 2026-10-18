@@ -656,9 +656,9 @@
     // RICERCA SEZIONE JELLYFIN
     // =====================================================
 
-    function findSectionByTitle(titleText) {
+    function findSectionByTitle(titleText, scope) {
         const target = titleText.trim().toLowerCase();
-        const sections = document.querySelectorAll('.homeSectionsContainer .verticalSection');
+        const sections = (scope || document).querySelectorAll('.homeSectionsContainer .verticalSection');
 
         for (const sec of sections) {
             const titleEl = sec.querySelector('.sectionTitle');
@@ -672,17 +672,17 @@
     }
 
 
-    function findAnchorSection() {
+    function findAnchorSection(scope) {
 
         for (const title of ANCHOR_CANDIDATE_TITLES) {
-            const found = findSectionByTitle(title);
+            const found = findSectionByTitle(title, scope);
             if (found) return found;
         }
 
         // Ultima spiaggia: nessuna etichetta nota trovata (es. il tema
         // l'ha rinominata di nuovo). Usiamo la sezione subito dopo
         // "Prossimo", che nella home è di norma la prima riga di film.
-        const continueWatching = findSectionByTitle(CONTINUE_WATCHING_TITLE);
+        const continueWatching = findSectionByTitle(CONTINUE_WATCHING_TITLE, scope);
 
         if (continueWatching) {
 
@@ -699,7 +699,7 @@
 
         // Diagnostica: elenca i titoli trovati per capire cosa manca.
         const titles = Array.from(
-            document.querySelectorAll('.homeSectionsContainer .verticalSection .sectionTitle')
+            (scope || document).querySelectorAll('.homeSectionsContainer .verticalSection .sectionTitle')
         ).map(el => el.textContent.trim());
 
         console.warn(
@@ -922,20 +922,28 @@
     // INIEZIONE
     // =====================================================
 
+    // La home attualmente visibile (le vecchie restano nel DOM con classe "hide").
+    function getActiveHome() {
+        const all = Array.from(document.querySelectorAll('.homeSectionsContainer'));
+        for (let i = all.length - 1; i >= 0; i--) {
+            const c = all[i];
+            if (!c.closest('.hide') && c.offsetParent !== null) return c;
+        }
+        return null;
+    }
+
     function injectSection(items) {
 
-        if (document.querySelector('.owlhub-trending-section')) return;
-
-        const homeContainer = document.querySelector('.homeSectionsContainer');
+        const homeContainer = getActiveHome();
         if (!homeContainer) return;
+        if (homeContainer.querySelector('.owlhub-trending-section')) return;
 
         ensureStyles();
 
-        const anchor = findAnchorSection();
+        const anchor = findAnchorSection(homeContainer);
 
-        // Non usiamo "Prossimo" come ancora diretta. Se non troviamo
-        // nemmeno una sezione dopo, il MutationObserver riproverà
-        // quando la home finisce di renderizzarsi.
+        // Se la home non ha ancora finito di renderizzarsi non c'è
+        // l'ancora: ensure() riproverà ai prossimi cambi del DOM.
         if (!anchor || !anchor.parentNode) return;
 
         const built = buildSectionFromAnchor(anchor, items);
@@ -966,54 +974,88 @@
     // INIT
     // =====================================================
 
-    async function init() {
-        try {
-            let trending = getCache();
+    let memItems = null;
+    let memDay = '';
+    let inflight = null;
+    let failedAt = 0;
 
-            if (!trending) {
-                const tmdbList = await fetchTrendingFromTMDB();
-                let matched = await matchLibraryItems(tmdbList);
-                matched = await enrichWithVisuals(matched);
+    async function loadData() {
+        if (memItems && memDay === todayKey()) return memItems;
 
-                trending = matched;
-                setCache(trending);
-            }
-
-            if (trending && trending.length) {
-                injectSection(trending);
-            }
-        } catch (e) {
-            console.error('[OwlHub Trending Now]', e);
+        const cached = getCache();
+        if (cached && cached.length) {
+            memItems = cached;
+            memDay = todayKey();
+            return memItems;
         }
+
+        // Dopo un errore aspetta un minuto prima di riprovare.
+        if (Date.now() - failedAt < 60000) return null;
+
+        if (!inflight) {
+            inflight = (async () => {
+                try {
+                    const tmdbList = await fetchTrendingFromTMDB();
+                    let matched = await matchLibraryItems(tmdbList);
+                    matched = await enrichWithVisuals(matched);
+                    if (matched.length) {
+                        setCache(matched);
+                        memItems = matched;
+                        memDay = todayKey();
+                    } else {
+                        failedAt = Date.now();
+                    }
+                    return matched;
+                } catch (e) {
+                    failedAt = Date.now();
+                    console.error('[OwlHub Trending Now]', e);
+                    return null;
+                } finally {
+                    inflight = null;
+                }
+            })();
+        }
+        return inflight;
     }
 
+    // Controllo economico: lavora solo se la home visibile non ha la sezione.
+    async function ensure() {
+        const home = getActiveHome();
+        if (!home || home.querySelector('.owlhub-trending-section')) return;
 
-    // =====================================================
-    // MUTATION OBSERVER
-    // =====================================================
+        const items = await loadData();
+        if (items && items.length) injectSection(items);
+    }
 
     let debounceTimer = null;
-
-    const observer = new MutationObserver(() => {
-        if (!document.querySelector('.homeSectionsContainer')) return;
-
+    function schedule(delay) {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(init, 400);
-    });
+        debounceTimer = setTimeout(ensure, delay);
+    }
 
+    // Home che si (ri)costruisce: osserva il DOM, ma agisce solo se manca la sezione.
+    const observer = new MutationObserver(() => {
+        const home = getActiveHome();
+        if (home && !home.querySelector('.owlhub-trending-section')) schedule(250);
+    });
     observer.observe(document.body, { childList: true, subtree: true });
 
-    // Primo caricamento.
-    setTimeout(init, 800);
-
-    // Quando l'app torna in foreground dopo essere stata in background,
-    // il browser sospende observer e timer: forziamo un nuovo init
-    // che reinietterà la sezione se nel frattempo è sparita dal DOM.
+    // Eventi di navigazione / ritorno in foreground: piu' tentativi ravvicinati,
+    // perche' la home carica le sue righe in modo asincrono.
+    function burst() {
+        [100, 600, 1500, 3500].forEach((ms) => setTimeout(ensure, ms));
+    }
+    document.addEventListener('viewshow', burst);
+    window.addEventListener('pageshow', burst);
+    window.addEventListener('hashchange', burst);
+    window.addEventListener('popstate', burst);
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(init, 600);
-        }
+        if (document.visibilityState === 'visible') burst();
     });
+
+    // Rete di sicurezza: se qualcosa sfugge, entro pochi secondi ricompare.
+    setInterval(() => { if (!document.hidden) ensure(); }, 3000);
+
+    setTimeout(ensure, 800);
 
 })();

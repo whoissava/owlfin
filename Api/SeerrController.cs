@@ -1,0 +1,287 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Jellyfin.Plugin.Owlfin.Api;
+
+/// <summary>
+/// Proxy verso Seerr (Jellyseerr/Overseerr) per la tab "Richiedi" di JellyTok.
+/// L'URL e la API key di Seerr restano solo in <see cref="Configuration.PluginConfiguration"/>:
+/// il browser parla soltanto con questi endpoint e non le vede mai.
+/// Servono utenti Jellyfin autenticati.
+/// </summary>
+[ApiController]
+[Route("Owlfin/Seerr")]
+[Authorize(Policy = "DefaultAuthorization")]
+public class SeerrController : ControllerBase
+{
+    private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+    private static readonly Regex LangRegex = new Regex("^[a-z]{2}(-[A-Za-z]{2})?$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Indica se Seerr e' configurato (URL e API key presenti).
+    /// </summary>
+    /// <returns>Un oggetto JSON <c>{ "enabled": true|false }</c>.</returns>
+    [HttpGet("Status")]
+    public ActionResult GetStatus()
+    {
+        return new JsonResult(new { enabled = TryGetConfig(out _, out _) });
+    }
+
+    /// <summary>
+    /// Elenco di titoli da scoprire (tendenza, film popolari o serie popolari), in forma ridotta.
+    /// </summary>
+    /// <param name="kind">"movie", "tv" oppure vuoto per le tendenze miste.</param>
+    /// <param name="page">Pagina (20 risultati ciascuna).</param>
+    /// <param name="lang">Lingua dei testi, es. "it" o "en".</param>
+    /// <returns>Un oggetto JSON con pagina, totale pagine e risultati.</returns>
+    [HttpGet("Discover")]
+    public async Task<ActionResult> Discover([FromQuery] string? kind, [FromQuery] int page = 1, [FromQuery] string? lang = null)
+    {
+        if (!TryGetConfig(out string url, out string key))
+        {
+            return NotFound();
+        }
+
+        page = Math.Clamp(page, 1, 500);
+        string path = kind switch
+        {
+            "movie" => "discover/movies",
+            "tv" => "discover/tv",
+            _ => "discover/trending"
+        };
+
+        try
+        {
+            (int code, JsonDocument? doc) = await SendAsync(HttpMethod.Get, $"{url}/api/v1/{path}?page={page}&language={SafeLang(lang)}", key, null).ConfigureAwait(false);
+            using (doc)
+            {
+                if (code < 200 || code >= 300 || doc is null)
+                {
+                    return StatusCode(502);
+                }
+
+                JsonElement root = doc.RootElement;
+                var results = new List<object>();
+
+                if (root.TryGetProperty("results", out JsonElement arr) && arr.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (JsonElement r in arr.EnumerateArray())
+                    {
+                        string type = Str(r, "mediaType") ?? (kind == "movie" ? "movie" : kind == "tv" ? "tv" : string.Empty);
+                        if (type != "movie" && type != "tv")
+                        {
+                            continue;
+                        }
+
+                        int status = 0;
+                        if (r.TryGetProperty("mediaInfo", out JsonElement mi) && mi.ValueKind == JsonValueKind.Object)
+                        {
+                            status = Int(mi, "status");
+                        }
+
+                        results.Add(new
+                        {
+                            id = Int(r, "id"),
+                            mediaType = type,
+                            title = Str(r, "title") ?? Str(r, "name") ?? string.Empty,
+                            date = Str(r, "releaseDate") ?? Str(r, "firstAirDate"),
+                            overview = Str(r, "overview"),
+                            poster = Str(r, "posterPath"),
+                            backdrop = Str(r, "backdropPath"),
+                            rating = Dbl(r, "voteAverage"),
+                            status
+                        });
+                    }
+                }
+
+                return new JsonResult(new { page, totalPages = Int(root, "totalPages"), results });
+            }
+        }
+        catch (Exception)
+        {
+            return StatusCode(502);
+        }
+    }
+
+    /// <summary>
+    /// Chiavi YouTube dei trailer di un titolo, lette dai dettagli di Seerr.
+    /// </summary>
+    /// <param name="kind">"movie" o "tv".</param>
+    /// <param name="id">Id TMDB.</param>
+    /// <param name="lang">Lingua dei testi.</param>
+    /// <returns>Un oggetto JSON <c>{ "keys": [...] }</c>.</returns>
+    [HttpGet("Videos")]
+    public async Task<ActionResult> Videos([FromQuery] string? kind, [FromQuery] int id, [FromQuery] string? lang = null)
+    {
+        if (!TryGetConfig(out string url, out string key))
+        {
+            return NotFound();
+        }
+
+        if ((kind != "movie" && kind != "tv") || id <= 0)
+        {
+            return BadRequest();
+        }
+
+        try
+        {
+            (int code, JsonDocument? doc) = await SendAsync(HttpMethod.Get, $"{url}/api/v1/{kind}/{id}?language={SafeLang(lang)}", key, null).ConfigureAwait(false);
+            using (doc)
+            {
+                if (code < 200 || code >= 300 || doc is null)
+                {
+                    return StatusCode(502);
+                }
+
+                var keys = new List<(int Rank, string Key)>();
+                if (doc.RootElement.TryGetProperty("relatedVideos", out JsonElement vids) && vids.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (JsonElement v in vids.EnumerateArray())
+                    {
+                        string? site = Str(v, "site");
+                        string? type = Str(v, "type");
+                        string? k = Str(v, "key");
+                        if (site == "YouTube" && !string.IsNullOrEmpty(k) && (type == "Trailer" || type == "Teaser"))
+                        {
+                            keys.Add((type == "Trailer" ? 0 : 1, k));
+                        }
+                    }
+                }
+
+                return new JsonResult(new { keys = keys.OrderBy(x => x.Rank).Select(x => x.Key).Distinct().ToList() });
+            }
+        }
+        catch (Exception)
+        {
+            return StatusCode(502);
+        }
+    }
+
+    /// <summary>
+    /// Crea una richiesta in Seerr. Corpo JSON: <c>{ "mediaType": "movie"|"tv", "mediaId": 123 }</c>.
+    /// Per le serie vengono richieste tutte le stagioni.
+    /// </summary>
+    /// <returns>Un oggetto JSON <c>{ "ok": true }</c>.</returns>
+    [HttpPost("Request")]
+    public async Task<ActionResult> CreateRequest()
+    {
+        if (!TryGetConfig(out string url, out string key))
+        {
+            return NotFound();
+        }
+
+        string? kind;
+        int mediaId;
+        try
+        {
+            using JsonDocument body = await JsonDocument.ParseAsync(Request.Body).ConfigureAwait(false);
+            kind = Str(body.RootElement, "mediaType");
+            mediaId = Int(body.RootElement, "mediaId");
+        }
+        catch (Exception)
+        {
+            return BadRequest();
+        }
+
+        if ((kind != "movie" && kind != "tv") || mediaId <= 0)
+        {
+            return BadRequest();
+        }
+
+        string payload = kind == "tv"
+            ? JsonSerializer.Serialize(new { mediaType = kind, mediaId, seasons = "all" })
+            : JsonSerializer.Serialize(new { mediaType = kind, mediaId });
+
+        try
+        {
+            (int code, JsonDocument? doc) = await SendAsync(HttpMethod.Post, $"{url}/api/v1/request", key, payload).ConfigureAwait(false);
+            doc?.Dispose();
+
+            if (code >= 200 && code < 300)
+            {
+                return new JsonResult(new { ok = true });
+            }
+
+            if (code == 409)
+            {
+                return new JsonResult(new { ok = true, already = true });
+            }
+
+            return StatusCode(502, new { ok = false, code });
+        }
+        catch (Exception)
+        {
+            return StatusCode(502);
+        }
+    }
+
+    private static bool TryGetConfig(out string url, out string key)
+    {
+        Configuration.PluginConfiguration? c = Plugin.Instance?.Configuration;
+        url = (c?.SeerrUrl ?? string.Empty).Trim().TrimEnd('/');
+        key = (c?.SeerrApiKey ?? string.Empty).Trim();
+        return url.Length > 0 && key.Length > 0;
+    }
+
+    private static string SafeLang(string? lang)
+    {
+        return !string.IsNullOrEmpty(lang) && LangRegex.IsMatch(lang) ? lang : "en";
+    }
+
+    private static async Task<(int Code, JsonDocument? Doc)> SendAsync(HttpMethod method, string url, string key, string? body)
+    {
+        using var req = new HttpRequestMessage(method, url);
+        req.Headers.Add("X-Api-Key", key);
+        if (body is not null)
+        {
+            req.Content = new StringContent(body, Encoding.UTF8, "application/json");
+        }
+
+        using HttpResponseMessage res = await Http.SendAsync(req).ConfigureAwait(false);
+        string text = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        JsonDocument? doc = null;
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            try
+            {
+                doc = JsonDocument.Parse(text);
+            }
+            catch (JsonException)
+            {
+                doc = null;
+            }
+        }
+
+        return ((int)res.StatusCode, doc);
+    }
+
+    private static string? Str(JsonElement e, string name)
+    {
+        return e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out JsonElement p) && p.ValueKind == JsonValueKind.String
+            ? p.GetString()
+            : null;
+    }
+
+    private static int Int(JsonElement e, string name)
+    {
+        return e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out JsonElement p) && p.ValueKind == JsonValueKind.Number && p.TryGetInt32(out int v)
+            ? v
+            : 0;
+    }
+
+    private static double Dbl(JsonElement e, string name)
+    {
+        return e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out JsonElement p) && p.ValueKind == JsonValueKind.Number && p.TryGetDouble(out double v)
+            ? v
+            : 0;
+    }
+}

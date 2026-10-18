@@ -25,6 +25,8 @@ public class PluginConfiguration : BasePluginConfiguration
         TrendingClientEnabled = false;
         SearchGridEnabled = true;
         DiscoverEnabled = true;
+        SeerrUrl = string.Empty;
+        SeerrApiKey = string.Empty;
     }
 
     /// <summary>
@@ -114,4 +116,15 @@ public class PluginConfiguration : BasePluginConfiguration
     /// feed (jellytok.js) is injected into the web client.
     /// </summary>
     public bool DiscoverEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the base URL of the user's Seerr instance (Jellyseerr/Overseerr),
+    /// e.g. http://localhost:5055. Called server-side only.
+    /// </summary>
+    public string SeerrUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the Seerr API key. Used only server-side by the Seerr proxy controller.
+    /// </summary>
+    public string SeerrApiKey { get; set; } = string.Empty;
 }

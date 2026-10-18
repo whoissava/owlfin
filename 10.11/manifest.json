@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.10.0.0",
+                "changelog": "1.10.0.0: JellyTok rifatto (grafica, preferiti, filtro film/serie, avanzamento) con tab Richiedi via Seerr; fix Di Tendenza Ora che non riappariva\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.10.0.0.zip",
+                "checksum": "7ea0a9d8c64be7bfb3ff2743c37ddfa9",
+                "timestamp": "2026-10-18T05:01:56Z"
+            },
+            {
                 "version": "1.9.2.0",
                 "changelog": "1.9.2.0: fix JellyTok: trailer non trovati (cache sporca, ricerca TMDB per titolo, piu candidati per titolo)\n",
                 "targetAbi": "10.11.0.0",
