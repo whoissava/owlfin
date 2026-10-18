@@ -320,7 +320,7 @@
             '.jt-stage iframe.jt-tap{pointer-events:auto;opacity:1;}',
             '.jt-spin{width:28px;height:28px;border-radius:50%;border:3px solid rgba(245,242,237,.22);border-top-color:var(--jt-text);animation:jt-spin .8s linear infinite;}',
             '.jt-loader{position:absolute;left:50%;top:50%;margin:-14px 0 0 -14px;transition:opacity .3s;}',
-            '.jt-loader.jt-off{opacity:0;}',
+            '.jt-loader.jt-off{opacity:0;animation:none;}',
             '@keyframes jt-spin{to{transform:rotate(360deg);}}',
             '.jt-prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(245,242,237,.16);}',
             '.jt-prog i{display:block;height:100%;background:var(--jt-accent);transform:scaleX(0);transform-origin:0 50%;transition:transform .3s linear;}',
@@ -666,12 +666,12 @@
     // ---------- scheda ----------
     function addCard(e) {
         var card = el('section', 'jt-card');
-        if (e.amb) { var amb = el('img', 'jt-amb'); amb.alt = ''; amb.decoding = 'async'; amb.src = e.amb; card.appendChild(amb); }
+        if (e.amb) { var amb = el('img', 'jt-amb'); amb.alt = ''; amb.decoding = 'async'; amb.dataset.src = e.amb; card.appendChild(amb); }
         card.appendChild(el('div', 'jt-scrim'));
 
         var main = el('div', 'jt-main');
         var stage = el('div', 'jt-stage');
-        if (e.still) { var still = el('img', 'jt-still'); still.alt = ''; still.decoding = 'async'; still.loading = 'lazy'; still.src = e.still; stage.appendChild(still); }
+        if (e.still) { var still = el('img', 'jt-still'); still.alt = ''; still.decoding = 'async'; still.dataset.src = e.still; stage.appendChild(still); }
         var loader = el('div', 'jt-spin jt-loader jt-off');
         stage.appendChild(loader);
         var flash = el('div', 'jt-flash', '<span class="material-icons">pause</span>');
@@ -683,7 +683,7 @@
 
         // intestazione: locandina + tipo + titolo + dati
         var head = el('div', 'jt-head');
-        if (e.poster) { var po = el('img', 'jt-poster'); po.alt = ''; po.decoding = 'async'; po.src = e.poster; head.appendChild(po); }
+        if (e.poster) { var po = el('img', 'jt-poster'); po.alt = ''; po.decoding = 'async'; po.dataset.src = e.poster; head.appendChild(po); }
         var ht = el('div', 'jt-headtxt');
         ht.appendChild(el('div', 'jt-kicker', esc(L(e.type === 'tv' ? 'typeTv' : 'typeMovie')) + (e.src === 'req' ? ' · ' + esc(L('notInLib')) : '')));
         ht.appendChild(el('h2', 'jt-title', esc(e.title)));
@@ -703,7 +703,7 @@
         ov.addEventListener('click', function (ev) { ev.stopPropagation(); ov.classList.toggle('jt-more'); });
         info.appendChild(ov);
 
-        var rec = { el: card, stage: stage, loader: loader, flash: flash, prog: prog.firstChild, e: e, iframe: null, note: null, paused: false, keys: undefined, ki: 0, idx: cards.length, lastTap: 0, tapT: 0, timer: 0, reqState: null, ytMuted: null, synced: false };
+        var rec = { el: card, stage: stage, loader: loader, flash: flash, prog: prog.firstChild, e: e, iframe: null, note: null, paused: false, keys: undefined, ki: 0, idx: cards.length, lastTap: 0, tapT: 0, timer: 0, reqState: null, ytMuted: null, synced: false, hyd: false, attachT: 0 };
 
         var actions = el('div', 'jt-actions');
         if (e.src === 'lib') {
@@ -743,6 +743,7 @@
 
         if (!cards.length) addHint(rec);
         cards.push(rec);
+        if (rec.idx <= 2) hydrate(rec, true);
         feed.appendChild(card);
         if (observer) observer.observe(card);
     }
@@ -802,15 +803,44 @@
         }, { root: feed, threshold: [0.6] });
     }
 
+    // Memoria: solo le schede vicine a quella attiva tengono le immagini caricate; le altre le rilasciano.
+    function hydrate(rec, on) {
+        if (rec.hyd === on) return;
+        rec.hyd = on;
+        var imgs = rec.el.querySelectorAll('img[data-src]');
+        for (var i = 0; i < imgs.length; i++) {
+            if (on) { if (imgs[i].getAttribute('src') !== imgs[i].dataset.src) imgs[i].src = imgs[i].dataset.src; }
+            else imgs[i].removeAttribute('src');
+        }
+    }
+
+    function trimMemory(center) {
+        for (var i = 0; i < cards.length; i++) hydrate(cards[i], Math.abs(cards[i].idx - center) <= 2);
+    }
+
+    // Distrugge il player YouTube liberando davvero la memoria (src vuoto prima di rimuoverlo).
+    function killFrame(rec) {
+        if (!rec.iframe) return;
+        try { rec.iframe.src = 'about:blank'; } catch (e) { /* ignore */ }
+        rec.iframe.remove();
+        rec.iframe = null;
+    }
+
     function activate(rec) {
         if (active) { active.el.classList.remove('jt-on'); detach(active); }
         active = rec;
         rec.el.classList.add('jt-on');
-        attach(rec);
-        for (var i = 1; i <= 2; i++) {
-            var n = cards[rec.idx + i];
-            if (n) { getTrailer(n.e); preload(n.e.still); }
-        }
+        trimMemory(rec.idx);
+        rec.loader.classList.remove('jt-off');
+        clearTimeout(rec.attachT);
+        rec.attachT = setTimeout(function () {
+            if (active !== rec) return;
+            attach(rec);
+            for (var i = 1; i <= 2; i++) {
+                var n = cards[rec.idx + i];
+                if (n) getTrailer(n.e);
+            }
+        }, 350);
         if (rec.idx >= cards.length - PREFETCH_AT) loadBlock(sessionToken);
     }
 
@@ -890,7 +920,8 @@
     function detach(rec) {
         if (!rec) return;
         clearTimeout(rec.timer);
-        if (rec.iframe) { rec.iframe.remove(); rec.iframe = null; }
+        clearTimeout(rec.attachT);
+        killFrame(rec);
         setNote(rec, null);
         rec.loader.classList.add('jt-off');
         rec.prog.style.transform = 'scaleX(0)';
@@ -919,7 +950,7 @@
         var rec = active;
         if (d.event === 'onError') {
             clearTimeout(rec.timer);
-            rec.iframe.remove(); rec.iframe = null;
+            killFrame(rec);
             rec.ki = (rec.ki || 0) + 1;
             if (rec.keys && rec.ki < rec.keys.length) play(rec);
             else { rec.loader.classList.add('jt-off'); setNote(rec, L('noTrailer')); }
@@ -935,6 +966,13 @@
             }
         }
     });
+
+    function onVisibility() {
+        if (!openState || !active) return;
+        if (document.hidden) detach(active);
+        else attach(active);
+    }
+    document.addEventListener('visibilitychange', onVisibility);
 
     function goToItem(e) {
         closeOverlay();

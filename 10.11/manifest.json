@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.11.4.0",
+                "changelog": "1.11.4.0: JellyTok ottimizzato senza cambiare l'aspetto: immagini caricate solo per le schede vicine, un solo player alla volta creato solo quando ci si ferma e liberato davvero, spinner nascosti fermi, player spento con l'app in background\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.11.4.0.zip",
+                "checksum": "aa572ee3791f2705c216b3f767863a8e",
+                "timestamp": "2026-10-18T16:46:22Z"
+            },
+            {
                 "version": "1.11.2.0",
                 "changelog": "1.11.2.0: Fix tab Richiedi su Jellyfin 12: la policy di autorizzazione DefaultAuthorization non esiste piu, ora il token viene verificato dal plugin stesso\n",
                 "targetAbi": "10.11.0.0",
