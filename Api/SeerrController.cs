@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Owlfin.Api;
 
@@ -24,6 +25,21 @@ public class SeerrController : ControllerBase
 {
     private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
     private static readonly Regex LangRegex = new Regex("^[a-z]{2}(-[A-Za-z]{2})?$", RegexOptions.Compiled);
+    private static readonly JsonSerializerOptions CamelCaseOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    private readonly ILogger<SeerrController> _logger;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SeerrController"/> class.
+    /// </summary>
+    /// <param name="logger">Instance of the <see cref="ILogger{SeerrController}"/> interface.</param>
+    public SeerrController(ILogger<SeerrController> logger)
+    {
+        _logger = logger;
+    }
 
     /// <summary>
     /// Indica se Seerr e' configurato (URL e API key presenti).
@@ -32,7 +48,14 @@ public class SeerrController : ControllerBase
     [HttpGet("Status")]
     public ActionResult GetStatus()
     {
-        return new JsonResult(new { enabled = TryGetConfig(out _, out _) });
+        try
+        {
+            return new JsonResult(new { enabled = TryGetConfig(out _, out _) }, CamelCaseOptions);
+        }
+        catch (Exception ex)
+        {
+            return Fail("Status", ex);
+        }
     }
 
     /// <summary>
@@ -65,7 +88,7 @@ public class SeerrController : ControllerBase
             {
                 if (code < 200 || code >= 300 || doc is null)
                 {
-                    return StatusCode(502);
+                    return Fail("Discover", null, $"Seerr HTTP {code}");
                 }
 
                 JsonElement root = doc.RootElement;
@@ -102,12 +125,12 @@ public class SeerrController : ControllerBase
                     }
                 }
 
-                return new JsonResult(new { page, totalPages = Int(root, "totalPages"), results });
+                return new JsonResult(new { page, totalPages = Int(root, "totalPages"), results }, CamelCaseOptions);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return StatusCode(502);
+            return Fail("Discover", ex);
         }
     }
 
@@ -138,7 +161,7 @@ public class SeerrController : ControllerBase
             {
                 if (code < 200 || code >= 300 || doc is null)
                 {
-                    return StatusCode(502);
+                    return Fail("Videos", null, $"Seerr HTTP {code}");
                 }
 
                 var keys = new List<(int Rank, string Key)>();
@@ -156,12 +179,12 @@ public class SeerrController : ControllerBase
                     }
                 }
 
-                return new JsonResult(new { keys = keys.OrderBy(x => x.Rank).Select(x => x.Key).Distinct().ToList() });
+                return new JsonResult(new { keys = keys.OrderBy(x => x.Rank).Select(x => x.Key).Distinct().ToList() }, CamelCaseOptions);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return StatusCode(502);
+            return Fail("Videos", ex);
         }
     }
 
@@ -207,20 +230,35 @@ public class SeerrController : ControllerBase
 
             if (code >= 200 && code < 300)
             {
-                return new JsonResult(new { ok = true });
+                return new JsonResult(new { ok = true }, CamelCaseOptions);
             }
 
             if (code == 409)
             {
-                return new JsonResult(new { ok = true, already = true });
+                return new JsonResult(new { ok = true, already = true }, CamelCaseOptions);
             }
 
-            return StatusCode(502, new { ok = false, code });
+            return Fail("Request", null, $"Seerr HTTP {code}");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return StatusCode(502);
+            return Fail("Request", ex);
         }
+    }
+
+    /// <summary>
+    /// Registra l'errore nel log di Jellyfin e risponde 502 con un breve messaggio leggibile dal client.
+    /// </summary>
+    private ActionResult Fail(string op, Exception? ex, string? message = null)
+    {
+        string text = message ?? (ex is null ? "errore" : $"{ex.GetType().Name}: {ex.Message}");
+        if (text.Length > 160)
+        {
+            text = text.Substring(0, 160);
+        }
+
+        _logger.LogWarning(ex, "Owlfin Seerr {Operation} non riuscito: {Message}", op, text);
+        return new JsonResult(new { error = text }, CamelCaseOptions) { StatusCode = 502 };
     }
 
     private static bool TryGetConfig(out string url, out string key)

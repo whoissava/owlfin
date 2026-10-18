@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.11.1.0",
+                "changelog": "1.11.1.0: Fix tab Richiedi: le risposte del plugin Seerr erano in PascalCase e il client non le leggeva; ora sono camelCase, gli errori mostrano il motivo e finiscono nel log di Jellyfin\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.11.1.0.zip",
+                "checksum": "023e3917f4d6ff5d0192abd008760bf4",
+                "timestamp": "2026-10-18T11:42:51Z"
+            },
+            {
                 "version": "1.11.0.0",
                 "changelog": "1.11.0.0: JellyTok: grafica rifatta (locandina, tab Libreria/Richiedi sempre visibili, spiegazione se Seerr non e' configurato o non risponde), video che partono da soli (sempre muti, audio con il tasto volume), niente sottotitoli YouTube\n",
                 "targetAbi": "10.11.0.0",

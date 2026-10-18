@@ -55,6 +55,12 @@
             Servono utenti Jellyfin autenticati.
             </summary>
         </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.#ctor(Microsoft.Extensions.Logging.ILogger{Jellyfin.Plugin.Owlfin.Api.SeerrController})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Owlfin.Api.SeerrController"/> class.
+            </summary>
+            <param name="logger">Instance of the <see cref="T:Microsoft.Extensions.Logging.ILogger`1"/> interface.</param>
+        </member>
         <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.GetStatus">
             <summary>
             Indica se Seerr e' configurato (URL e API key presenti).
@@ -85,6 +91,11 @@
             Per le serie vengono richieste tutte le stagioni.
             </summary>
             <returns>Un oggetto JSON <c>{ "ok": true }</c>.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.SeerrController.Fail(System.String,System.Exception,System.String)">
+            <summary>
+            Registra l'errore nel log di Jellyfin e risponde 502 con un breve messaggio leggibile dal client.
+            </summary>
         </member>
         <member name="T:Jellyfin.Plugin.Owlfin.Api.SonarrController">
             <summary>

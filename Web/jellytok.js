@@ -86,7 +86,7 @@
     }
     function savePrefs() { lsSet(PREFS_KEY, JSON.stringify(prefs)); }
     function errMsg(e) { return (e && (e.message || e.status)) || String(e); }
-    function errCode(e) { return (e && e.status) ? 'HTTP ' + e.status : 'rete'; }
+    function errCode(e) { return (e && e.status) ? 'HTTP ' + e.status + (e.detail ? ' - ' + e.detail : '') : 'rete'; }
     function preload(url) { if (url) { var i = new Image(); i.decoding = 'async'; i.src = url; } }
     function fmtRuntime(m) { if (!m) return ''; return m >= 60 ? Math.floor(m / 60) + 'h ' + (m % 60 ? (m % 60) + 'm' : '') : m + ' min'; }
 
@@ -98,7 +98,15 @@
         var h = { 'Authorization': 'MediaBrowser Token="' + tok + '"', 'X-Emby-Token': tok };
         if (opts.body) h['Content-Type'] = 'application/json';
         return fetch(c.getUrl(path), { method: opts.method || 'GET', headers: h, body: opts.body }).then(function (r) {
-            if (!r.ok) { var e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+            if (!r.ok) {
+                // il plugin risponde con { error: "..." }: lo mostriamo per capire cosa non va
+                return r.json().catch(function () { return null; }).then(function (b) {
+                    var e = new Error('HTTP ' + r.status);
+                    e.status = r.status;
+                    e.detail = b && b.error ? String(b.error) : '';
+                    throw e;
+                });
+            }
             return r.json();
         });
     }
