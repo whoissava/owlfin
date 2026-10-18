@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.11.0.0",
+                "changelog": "1.11.0.0: JellyTok: grafica rifatta (locandina, tab Libreria/Richiedi sempre visibili, spiegazione se Seerr non e' configurato o non risponde), video che partono da soli (sempre muti, audio con il tasto volume), niente sottotitoli YouTube\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.11.0.0.zip",
+                "checksum": "89fa1a4fd5c7324a0e497f08f84a73b2",
+                "timestamp": "2026-10-18T05:33:11Z"
+            },
+            {
                 "version": "1.10.0.0",
                 "changelog": "1.10.0.0: JellyTok rifatto (grafica, preferiti, filtro film/serie, avanzamento) con tab Richiedi via Seerr; fix Di Tendenza Ora che non riappariva\n",
                 "targetAbi": "10.11.0.0",

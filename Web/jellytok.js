@@ -1,7 +1,7 @@
 // Owlfin - JellyTok
 // Feed verticale a schermo intero di trailer, stile TikTok.
 //   Libreria  - titoli casuali presenti sul server, a blocchi di 20
-//   Richiedi  - titoli di tendenza non ancora presenti, richiedibili via Seerr (se configurato)
+//   Richiedi  - titoli di tendenza non ancora presenti, richiedibili via Seerr
 // Voce nel menu laterale, X in alto per chiudere.
 (function () {
     'use strict';
@@ -21,32 +21,44 @@
     var STR = {
         it: {
             menu: 'Scopri', title: 'Scopri', tabLib: 'Libreria', tabReq: 'Richiedi',
-            all: 'Tutti', movies: 'Film', series: 'Serie TV',
+            all: 'Tutti', movies: 'Film', series: 'Serie TV', typeMovie: 'Film', typeTv: 'Serie TV', notInLib: 'Non sul server',
             watch: 'Guarda', request: 'Richiedi', requesting: 'Invio…', requested: 'Richiesto',
             st2: 'Richiesto', st3: 'In lavorazione', st4: 'Parziale',
             loading: 'Carico i titoli…', emptyLib: 'Nessun titolo trovato nella libreria.',
             emptyReq: 'Nessun titolo da richiedere al momento.', noTrailer: 'Trailer non disponibile',
             close: 'Chiudi', sound: 'Audio', fav: 'Aggiungi ai preferiti', unfav: 'Rimuovi dai preferiti',
             swipe: 'Scorri', reqOk: 'Richiesta inviata a Seerr', reqFail: 'Richiesta non riuscita, riprova tra poco',
-            audioBlocked: 'Audio bloccato dal browser: tocca il volume'
+            audioBlocked: 'Audio bloccato dal sistema, resta disattivato', tapPlay: 'Tocca per avviare',
+            setupTitle: 'Collega Seerr',
+            setupBody: 'Per richiedere film e serie che non sono ancora sul server inserisci URL e API key di Seerr in Dashboard → Plugin → Owlfin → Credenziali API.',
+            errTitle: 'Seerr non raggiungibile',
+            errBody: 'Controlla URL e API key di Seerr nelle impostazioni del plugin e che il server sia acceso.',
+            goLib: 'Vai alla libreria'
         },
         en: {
             menu: 'Discover', title: 'Discover', tabLib: 'Library', tabReq: 'Request',
-            all: 'All', movies: 'Movies', series: 'Series',
+            all: 'All', movies: 'Movies', series: 'Series', typeMovie: 'Movie', typeTv: 'Series', notInLib: 'Not on server',
             watch: 'Watch', request: 'Request', requesting: 'Sending…', requested: 'Requested',
             st2: 'Requested', st3: 'Processing', st4: 'Partial',
             loading: 'Loading titles…', emptyLib: 'No titles found in the library.',
             emptyReq: 'Nothing to request right now.', noTrailer: 'Trailer not available',
             close: 'Close', sound: 'Sound', fav: 'Add to favorites', unfav: 'Remove from favorites',
             swipe: 'Swipe', reqOk: 'Request sent to Seerr', reqFail: 'Request failed, try again soon',
-            audioBlocked: 'Audio blocked by the browser: tap the volume'
+            audioBlocked: 'Sound blocked by the system, staying muted', tapPlay: 'Tap to play',
+            setupTitle: 'Connect Seerr',
+            setupBody: 'To request movies and shows that are not on the server yet, enter your Seerr URL and API key in Dashboard → Plugins → Owlfin → API credentials.',
+            errTitle: 'Seerr unreachable',
+            errBody: 'Check the Seerr URL and API key in the plugin settings and that the server is running.',
+            goLib: 'Go to library'
         }
     };
     function L(k) { return STR[LANG][k] || k; }
 
     // ---------- stato ----------
-    var prefs = loadPrefs();            // { mode:'lib'|'req', kind:'all'|'Movie'|'Series', muted, hinted }
+    var prefs = loadPrefs();            // { mode:'lib'|'req', kind:'all'|'Movie'|'Series', hinted }
+    var wantSound = false;              // solo per la sessione: si parte sempre muti (l'autoplay con audio e' bloccato su mobile)
     var seerrOk = null;                 // null = non verificato
+    var seerrErr = null;                // null oppure testo dell'errore (HTTP xxx / rete)
     var libIds = null, libType = {}, libAt = 0;
     var libPool = [], libCursor = 0, libSeen = {};
     var reqPage = 0, reqTotal = 1, reqSeen = {};
@@ -68,12 +80,13 @@
     function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
     function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
     function loadPrefs() {
-        var p = { mode: 'lib', kind: 'all', muted: true, hinted: false };
+        var p = { mode: 'lib', kind: 'all', hinted: false };
         try { var s = JSON.parse(lsGet(PREFS_KEY) || '{}'); for (var k in p) if (s[k] !== undefined) p[k] = s[k]; } catch (e) { /* ignore */ }
         return p;
     }
     function savePrefs() { lsSet(PREFS_KEY, JSON.stringify(prefs)); }
     function errMsg(e) { return (e && (e.message || e.status)) || String(e); }
+    function errCode(e) { return (e && e.status) ? 'HTTP ' + e.status : 'rete'; }
     function preload(url) { if (url) { var i = new Image(); i.decoding = 'async'; i.src = url; } }
     function fmtRuntime(m) { if (!m) return ''; return m >= 60 ? Math.floor(m / 60) + 'h ' + (m % 60 ? (m % 60) + 'm' : '') : m + ' min'; }
 
@@ -156,6 +169,7 @@
             minutes: item.RunTimeTicks ? Math.round(item.RunTimeTicks / 600000000) : null,
             genres: (item.Genres || []).slice(0, 3), overview: item.Overview || '',
             amb: imgUrl(item, 'Primary', 64) || imgUrl(item, 'Backdrop', 96),
+            poster: imgUrl(item, 'Primary', 240),
             still: imgUrl(item, 'Backdrop', 780) || imgUrl(item, 'Primary', 500),
             fav: !!(item.UserData && item.UserData.IsFavorite),
             tmdbId: tmdb || null, remote: item.RemoteTrailers || [], status: 0, raw: item
@@ -164,9 +178,10 @@
 
     // ---------- dati: richieste (Seerr) ----------
     function checkSeerr() {
-        if (seerrOk !== null) return Promise.resolve(seerrOk);
-        return jf('Owlfin/Seerr/Status').then(function (r) { seerrOk = !!(r && r.enabled); return seerrOk; })
-            .catch(function () { seerrOk = false; return false; });
+        if (seerrOk === true) return Promise.resolve(true);
+        return jf('Owlfin/Seerr/Status')
+            .then(function (r) { seerrOk = !!(r && r.enabled); seerrErr = null; return seerrOk; })
+            .catch(function (e) { seerrOk = false; seerrErr = errCode(e); return false; });
     }
 
     function normalizeReq(x) {
@@ -177,6 +192,7 @@
             rating: x.rating && x.rating > 0 ? x.rating : null, minutes: null, genres: [],
             overview: x.overview || '',
             amb: x.poster ? TMDB_IMG + 'w92' + x.poster : (x.backdrop ? TMDB_IMG + 'w300' + x.backdrop : ''),
+            poster: x.poster ? TMDB_IMG + 'w185' + x.poster : '',
             still: x.backdrop ? TMDB_IMG + 'w780' + x.backdrop : (x.poster ? TMDB_IMG + 'w500' + x.poster : ''),
             fav: false, tmdbId: x.id, remote: [], status: x.status || 0
         };
@@ -259,75 +275,98 @@
         var s = document.createElement('style');
         s.id = 'owlfin-jt-css';
         s.textContent = [
-            '#owlfin-jt{--jt-accent:#00a4dc;--jt-ink:#0c0e11;--jt-text:#f4f1ec;--jt-dim:rgba(244,241,236,.7);--jt-glass:rgba(18,20,25,.66);',
-            'position:fixed;inset:0;z-index:100000;background:var(--jt-ink);color:var(--jt-text);display:none;font-family:inherit;-webkit-tap-highlight-color:transparent;}',
+            '#owlfin-jt{--jt-accent:#00a4dc;--jt-ink:#0b0d10;--jt-text:#f5f2ed;--jt-dim:rgba(245,242,237,.74);--jt-glass:rgba(20,23,28,.62);--jt-line:rgba(245,242,237,.16);',
+            'position:fixed;inset:0;z-index:100000;background:var(--jt-ink);color:var(--jt-text);display:none;font-family:inherit;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}',
             '#owlfin-jt.jt-open{display:block;}',
             'html.jt-lock,html.jt-lock body{overflow:hidden!important;}',
-            '#owlfin-jt button{font-family:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0;}',
+            /* reset a specificita' zero: le classi sotto devono poterlo sempre battere */
+            ':where(#owlfin-jt) button{font-family:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0;margin:0;-webkit-appearance:none;appearance:none;}',
             '#owlfin-jt button:focus-visible{outline:2px solid var(--jt-accent);outline-offset:2px;}',
-            '#owlfin-jt-feed{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none;}',
+            '#owlfin-jt-feed{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;}',
             '#owlfin-jt-feed::-webkit-scrollbar{display:none;}',
 
             /* barra superiore */
-            '.jt-bar{position:absolute;top:0;left:0;right:0;z-index:6;padding:calc(env(safe-area-inset-top) + 10px) 12px 24px;pointer-events:none;background:linear-gradient(to bottom,rgba(12,14,17,.85),rgba(12,14,17,0));}',
-            '.jt-row{display:flex;align-items:center;gap:8px;}',
-            '.jt-tabs{display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--jt-glass);pointer-events:auto;}',
-            '.jt-tab{padding:8px 16px;border-radius:999px;font-size:.92rem;font-weight:600;color:var(--jt-dim);transition:background .2s,color .2s;}',
-            '.jt-tab.jt-on{background:var(--jt-text);color:var(--jt-ink);}',
-            '.jt-name{font-size:1.05rem;font-weight:700;padding:0 6px;}',
+            '.jt-bar{position:absolute;top:0;left:0;right:0;z-index:6;padding:calc(env(safe-area-inset-top) + 12px) 14px 30px;pointer-events:none;background:linear-gradient(to bottom,rgba(11,13,16,.92),rgba(11,13,16,.55) 55%,rgba(11,13,16,0));}',
+            '.jt-row{display:flex;align-items:center;gap:10px;}',
             '.jt-spacer{flex:1;}',
-            '.jt-round{pointer-events:auto;width:40px;height:40px;border-radius:50%;background:var(--jt-glass)!important;display:flex;align-items:center;justify-content:center;}',
-            '.jt-round .material-icons{font-size:1.4rem;}',
-            '.jt-chips{display:flex;gap:6px;margin-top:10px;pointer-events:auto;}',
-            '.jt-chip{padding:6px 14px;border-radius:999px;font-size:.8rem;font-weight:600;color:var(--jt-dim);box-shadow:inset 0 0 0 1px rgba(244,241,236,.22);transition:background .2s,color .2s;}',
-            '.jt-chip.jt-on{background:rgba(244,241,236,.16);color:var(--jt-text);box-shadow:inset 0 0 0 1px rgba(244,241,236,.5);}',
+            '.jt-tabs{display:flex;padding:4px;border-radius:999px;background:var(--jt-glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px var(--jt-line);pointer-events:auto;}',
+            '.jt-tab{padding:10px 19px;border-radius:999px;font-size:.93rem;font-weight:650;line-height:1;letter-spacing:.005em;color:var(--jt-dim);transition:background .25s,color .25s;}',
+            '.jt-tab.jt-on{background:var(--jt-text);color:var(--jt-ink);}',
+            '.jt-round{pointer-events:auto;width:42px;height:42px;border-radius:50%;background:var(--jt-glass)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px var(--jt-line);display:flex;align-items:center;justify-content:center;transition:transform .15s;}',
+            '.jt-round:active{transform:scale(.92);}',
+            '.jt-round .material-icons{font-size:1.35rem;}',
+            '.jt-chips{display:flex;gap:8px;margin-top:14px;pointer-events:auto;overflow-x:auto;scrollbar-width:none;}',
+            '.jt-chips::-webkit-scrollbar{display:none;}',
+            '.jt-chip{flex:none;padding:8px 16px;border-radius:999px;font-size:.83rem;font-weight:650;line-height:1;color:var(--jt-dim);background:rgba(245,242,237,.07);box-shadow:inset 0 0 0 1px var(--jt-line);transition:background .2s,color .2s;}',
+            '.jt-chip.jt-on{background:var(--jt-accent);color:#031821;box-shadow:none;}',
 
             /* scheda */
             '.jt-card{position:relative;height:100vh;height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden;contain:layout paint;}',
-            '.jt-amb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.15);opacity:.55;}',
-            '.jt-scrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(12,14,17,.55),rgba(12,14,17,.92));}',
-            '.jt-main{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:calc(env(safe-area-inset-top) + 118px) 14px calc(env(safe-area-inset-bottom) + 24px);}',
-            '.jt-stage{position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000;box-shadow:0 22px 50px -14px rgba(0,0,0,.85),0 0 0 1px rgba(244,241,236,.1);flex-shrink:0;}',
+            '.jt-amb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.2);opacity:.6;filter:saturate(1.5);}',
+            '.jt-scrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(11,13,16,.5),rgba(11,13,16,.8) 45%,rgba(11,13,16,.96));}',
+            '.jt-main{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:22px;padding:calc(env(safe-area-inset-top) + 124px) 16px calc(env(safe-area-inset-bottom) + 28px);}',
+            '.jt-stage{position:relative;width:100%;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 30px 60px -22px rgba(0,0,0,.95),0 0 0 1px rgba(245,242,237,.1);flex-shrink:0;}',
             '.jt-still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}',
             '.jt-stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;opacity:0;transition:opacity .45s;}',
             '.jt-stage iframe.jt-ready{opacity:1;}',
-            '.jt-loader{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:2.5px solid rgba(244,241,236,.25);border-top-color:var(--jt-text);animation:jt-spin .8s linear infinite;transition:opacity .3s;}',
+            '.jt-stage iframe.jt-tap{pointer-events:auto;opacity:1;}',
+            '.jt-spin{width:28px;height:28px;border-radius:50%;border:3px solid rgba(245,242,237,.22);border-top-color:var(--jt-text);animation:jt-spin .8s linear infinite;}',
+            '.jt-loader{position:absolute;left:50%;top:50%;margin:-14px 0 0 -14px;transition:opacity .3s;}',
             '.jt-loader.jt-off{opacity:0;}',
             '@keyframes jt-spin{to{transform:rotate(360deg);}}',
-            '.jt-prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(244,241,236,.18);}',
+            '.jt-prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(245,242,237,.16);}',
             '.jt-prog i{display:block;height:100%;background:var(--jt-accent);transform:scaleX(0);transform-origin:0 50%;transition:transform .3s linear;}',
-            '.jt-note{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);padding:6px 12px;border-radius:999px;background:var(--jt-glass);font-size:.8rem;color:var(--jt-dim);white-space:nowrap;pointer-events:none;}',
+            '.jt-note{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:7px 14px;border-radius:999px;background:var(--jt-glass);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font-size:.8rem;font-weight:600;color:var(--jt-text);white-space:nowrap;pointer-events:none;}',
+            '.jt-flash{position:absolute;left:50%;top:50%;width:66px;height:66px;margin:-33px 0 0 -33px;border-radius:50%;background:rgba(11,13,16,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;}',
+            '.jt-flash .material-icons{font-size:2rem;}',
+            '.jt-flash.jt-go{animation:jt-flash .65s ease-out;}',
+            '.jt-flash.jt-hold{opacity:1;}',
+            '@keyframes jt-flash{0%{opacity:0;transform:scale(.7)}30%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.12)}}',
             '.jt-burst{position:absolute;width:84px;height:84px;margin:-42px 0 0 -42px;pointer-events:none;color:#ff4d6d;animation:jt-pop .75s ease-out forwards;}',
             '.jt-burst .material-icons{font-size:84px;}',
             '@keyframes jt-pop{0%{transform:scale(.3);opacity:0}25%{transform:scale(1.15);opacity:1}60%{transform:scale(1);opacity:1}100%{transform:scale(1.2) translateY(-24px);opacity:0}}',
 
             /* informazioni */
-            '.jt-info{opacity:0;transform:translateY(12px);transition:opacity .45s ease,transform .45s ease;max-width:640px;}',
-            '.jt-card.jt-on .jt-info{opacity:1;transform:none;}',
-            '.jt-title{margin:0 0 8px;font-size:clamp(1.5rem,5.6vw,2.5rem);line-height:1.08;font-weight:800;letter-spacing:-.02em;text-wrap:balance;text-shadow:0 2px 14px rgba(0,0,0,.5);}',
-            '.jt-facts{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:.88rem;color:var(--jt-dim);margin-bottom:10px;}',
-            '.jt-rate{display:inline-flex;align-items:center;gap:3px;padding:2px 8px 2px 6px;border-radius:6px;background:rgba(244,241,236,.14);color:var(--jt-text);font-weight:700;}',
+            '.jt-info{max-width:640px;}',
+            '.jt-info>*{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .55s cubic-bezier(.2,.8,.2,1);}',
+            '.jt-card.jt-on .jt-info>*{opacity:1;transform:none;}',
+            '.jt-card.jt-on .jt-info>:nth-child(2){transition-delay:.05s;}',
+            '.jt-card.jt-on .jt-info>:nth-child(3){transition-delay:.1s;}',
+            '.jt-card.jt-on .jt-info>:nth-child(4){transition-delay:.15s;}',
+            '.jt-head{display:flex;align-items:flex-end;gap:14px;margin-bottom:14px;}',
+            '.jt-poster{flex:none;width:76px;aspect-ratio:2/3;border-radius:10px;object-fit:cover;background:rgba(245,242,237,.08);box-shadow:0 12px 26px -8px rgba(0,0,0,.85),0 0 0 1px rgba(245,242,237,.14);}',
+            '.jt-headtxt{min-width:0;flex:1;}',
+            '.jt-kicker{margin-bottom:6px;font-size:.72rem;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:var(--jt-accent);}',
+            '.jt-title{margin:0 0 9px;font-size:clamp(1.4rem,5.6vw,2.3rem);line-height:1.1;font-weight:800;letter-spacing:-.02em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 2px 14px rgba(0,0,0,.5);}',
+            '.jt-facts{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:.88rem;color:var(--jt-dim);}',
+            '.jt-rate{display:inline-flex;align-items:center;gap:3px;padding:3px 9px 3px 7px;border-radius:7px;background:rgba(245,242,237,.14);color:var(--jt-text);font-weight:700;}',
             '.jt-rate .material-icons{font-size:.95rem;color:#f5c518;}',
-            '.jt-gen{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}',
-            '.jt-gen span{padding:3px 10px;border-radius:999px;font-size:.78rem;box-shadow:inset 0 0 0 1px rgba(244,241,236,.28);color:var(--jt-text);}',
-            '.jt-ov{margin:0 0 16px;font-size:.92rem;line-height:1.5;color:var(--jt-dim);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;}',
-            '.jt-ov.jt-more{-webkit-line-clamp:unset;max-height:30vh;overflow-y:auto;}',
+            '.jt-gen{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}',
+            '.jt-gen span{padding:4px 11px;border-radius:999px;font-size:.78rem;font-weight:550;box-shadow:inset 0 0 0 1px rgba(245,242,237,.26);color:var(--jt-text);}',
+            '.jt-ov{margin:0 0 18px;font-size:.93rem;line-height:1.55;color:var(--jt-dim);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;}',
+            '.jt-ov.jt-more{-webkit-line-clamp:unset;max-height:28vh;overflow-y:auto;}',
             '.jt-actions{display:flex;align-items:center;gap:10px;}',
-            '.jt-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:0 26px;border-radius:999px;font-size:1rem;font-weight:700;transition:transform .15s,opacity .2s;}',
-            '.jt-btn:active{transform:scale(.96);}',
-            '.jt-btn.jt-main-btn{background:var(--jt-text)!important;color:var(--jt-ink)!important;}',
-            '.jt-btn.jt-req-btn{background:var(--jt-accent)!important;color:#04141b!important;}',
-            '.jt-btn[disabled]{opacity:.6;cursor:default;}',
-            '.jt-btn .material-icons{font-size:1.3rem;}',
-            '.jt-fav{width:46px;height:46px;border-radius:50%;background:rgba(244,241,236,.14)!important;display:flex;align-items:center;justify-content:center;}',
+            '.jt-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:50px;padding:0 28px;border-radius:999px;font-size:1rem;font-weight:700;line-height:1;white-space:nowrap;transition:transform .15s,opacity .2s;}',
+            '.jt-btn:active{transform:scale(.97);}',
+            '.jt-btn.jt-main-btn{background:var(--jt-text)!important;color:var(--jt-ink)!important;flex:1;max-width:250px;}',
+            '.jt-btn.jt-req-btn{background:var(--jt-accent)!important;color:#031821!important;flex:1;max-width:250px;}',
+            '.jt-btn[disabled]{opacity:.62;cursor:default;}',
+            '.jt-btn .material-icons{font-size:1.35rem;}',
+            '.jt-fav{width:50px;height:50px;border-radius:50%;background:rgba(245,242,237,.14)!important;box-shadow:inset 0 0 0 1px var(--jt-line);display:flex;align-items:center;justify-content:center;transition:transform .15s,color .2s;}',
+            '.jt-fav:active{transform:scale(.9);}',
+            '.jt-fav .material-icons{font-size:1.45rem;}',
             '.jt-fav.jt-on{color:#ff4d6d!important;}',
 
-            /* suggerimento + toast */
+            /* suggerimento, stati, toast */
             '.jt-hint{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 6px);display:flex;flex-direction:column;align-items:center;font-size:.72rem;color:var(--jt-dim);pointer-events:none;animation:jt-bob 1.6s ease-in-out infinite;}',
             '.jt-hint .material-icons{font-size:1.4rem;}',
             '@keyframes jt-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}',
-            '.jt-status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:0 24px;text-align:center;color:var(--jt-dim);font-size:.95rem;pointer-events:none;}',
-            '.jt-toast{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translate(-50%,20px);z-index:8;max-width:88vw;padding:11px 18px;border-radius:999px;background:var(--jt-text);color:var(--jt-ink);font-size:.9rem;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;}',
+            '.jt-status{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 34px;text-align:center;color:var(--jt-dim);font-size:.95rem;line-height:1.55;pointer-events:none;}',
+            '.jt-status .jt-btn{pointer-events:auto;margin-top:6px;flex:none;}',
+            '.jt-sicon{width:70px;height:70px;border-radius:50%;background:rgba(0,164,220,.14);color:var(--jt-accent);box-shadow:inset 0 0 0 1px rgba(0,164,220,.38);display:flex;align-items:center;justify-content:center;}',
+            '.jt-sicon .material-icons{font-size:2rem;}',
+            '.jt-stitle{font-size:1.25rem;font-weight:800;color:var(--jt-text);}',
+            '.jt-toast{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translate(-50%,20px);z-index:8;max-width:88vw;padding:12px 20px;border-radius:999px;background:var(--jt-text);color:var(--jt-ink);font-size:.9rem;font-weight:650;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;}',
             '.jt-toast.jt-show{opacity:1;transform:translate(-50%,0);}',
 
             /* orizzontale / desktop: video a tutto schermo */
@@ -335,13 +374,14 @@
             '.jt-main{display:block;padding:0;}',
             '.jt-stage{position:absolute;inset:0;width:auto;aspect-ratio:auto;border-radius:0;box-shadow:none;}',
             '.jt-stage iframe{width:max(100vw,177.78vh);width:max(100vw,177.78dvh);height:max(100vh,56.25vw);height:max(100dvh,56.25vw);left:50%;top:50%;inset:auto;transform:translate(-50%,-50%);}',
-            '.jt-card::after{content:"";position:absolute;inset:0;background:linear-gradient(to right,rgba(12,14,17,.88),rgba(12,14,17,.25) 55%,rgba(12,14,17,0)),linear-gradient(to top,rgba(12,14,17,.8),rgba(12,14,17,0) 45%);pointer-events:none;}',
+            '.jt-card::after{content:"";position:absolute;inset:0;background:linear-gradient(to right,rgba(11,13,16,.9),rgba(11,13,16,.25) 55%,rgba(11,13,16,0)),linear-gradient(to top,rgba(11,13,16,.8),rgba(11,13,16,0) 45%);pointer-events:none;}',
             '.jt-scrim,.jt-amb{display:none;}',
             '.jt-info{position:absolute;z-index:2;left:max(32px,4vw);bottom:max(34px,6vh);width:min(540px,46vw);}',
+            '.jt-poster{display:none;}',
             '.jt-prog{z-index:2;}',
             '.jt-note{bottom:auto;top:96px;}',
             '}',
-            '@media (prefers-reduced-motion:reduce){.jt-info{transition:none;transform:none;}.jt-hint,.jt-loader{animation:none;}.jt-burst{animation-duration:.01s;}}',
+            '@media (prefers-reduced-motion:reduce){.jt-info>*{transition:none;transform:none;}.jt-hint,.jt-spin{animation:none;}.jt-burst,.jt-flash.jt-go{animation-duration:.01s;}}',
 
             /* voce nel menu */
             '#owlfin-discover-btn{display:flex;align-items:center;width:100%;padding:0;border:0;background:none;cursor:pointer;color:rgba(255,255,255,.87);font-size:1rem;font-family:inherit;text-align:left;transition:background .15s;}',
@@ -395,20 +435,16 @@
     }
 
     function renderChrome() {
-        // tab: visibili solo se Seerr e' configurato
+        // le due tab ci sono sempre; se Seerr non e' pronto, "Richiedi" spiega come attivarlo
         tabsEl.innerHTML = '';
-        if (seerrOk) {
-            [['lib', 'tabLib'], ['req', 'tabReq']].forEach(function (t2) {
-                var b = el('button', 'jt-tab' + (prefs.mode === t2[0] ? ' jt-on' : ''), esc(L(t2[1])));
-                b.addEventListener('click', function () {
-                    if (prefs.mode === t2[0]) return;
-                    prefs.mode = t2[0]; savePrefs(); renderChrome(); start();
-                });
-                tabsEl.appendChild(b);
+        [['lib', 'tabLib'], ['req', 'tabReq']].forEach(function (t2) {
+            var b = el('button', 'jt-tab' + (prefs.mode === t2[0] ? ' jt-on' : ''), esc(L(t2[1])));
+            b.addEventListener('click', function () {
+                if (prefs.mode === t2[0]) return;
+                prefs.mode = t2[0]; savePrefs(); renderChrome(); start();
             });
-        } else {
-            tabsEl.appendChild(el('div', 'jt-name', esc(L('title'))));
-        }
+            tabsEl.appendChild(b);
+        });
         chipsEl.innerHTML = '';
         [['all', 'all'], ['Movie', 'movies'], ['Series', 'series']].forEach(function (c2) {
             var b = el('button', 'jt-chip' + (prefs.kind === c2[0] ? ' jt-on' : ''), esc(L(c2[1])));
@@ -421,7 +457,7 @@
         updateSoundIcon();
     }
 
-    function updateSoundIcon() { if (soundBtn) soundBtn.firstChild.textContent = prefs.muted ? 'volume_off' : 'volume_up'; }
+    function updateSoundIcon() { if (soundBtn) soundBtn.firstChild.textContent = wantSound ? 'volume_up' : 'volume_off'; }
 
     function toast(msg) {
         if (!toastEl) return;
@@ -438,13 +474,29 @@
         if (h) h.remove();
     }
 
-    function post(iframe, func) {
-        try { iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: func, args: '' }), '*'); } catch (e) { /* ignore */ }
+    function post(iframe, func, args) {
+        try { iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: func, args: args || '' }), '*'); } catch (e) { /* ignore */ }
+    }
+
+    // Audio: si parte sempre muti (unico modo per avere l'autoplay su mobile); il tasto volume
+    // chiede al player di attivare l'audio. Se il sistema lo rifiuta, si torna muti con un avviso.
+    function applySound(rec) {
+        if (!rec || !rec.iframe) return;
+        rec.ytMuted = null;
+        if (wantSound) { post(rec.iframe, 'unMute'); post(rec.iframe, 'setVolume', [100]); }
+        else post(rec.iframe, 'mute');
+        if (wantSound) {
+            setTimeout(function () {
+                if (active === rec && wantSound && rec.ytMuted === true) {
+                    wantSound = false; updateSoundIcon(); toast(L('audioBlocked'));
+                }
+            }, 1200);
+        }
     }
 
     function toggleMute() {
-        prefs.muted = !prefs.muted; savePrefs(); updateSoundIcon();
-        if (active && active.iframe) post(active.iframe, prefs.muted ? 'mute' : 'unMute');
+        wantSound = !wantSound; updateSoundIcon();
+        if (active) applySound(active);
     }
 
     // ---------- apertura / chiusura ----------
@@ -469,12 +521,13 @@
                 var l = document.createElement('link'); l.rel = 'preconnect'; l.href = u; l.setAttribute('data-jt', u); document.head.appendChild(l);
             }
         });
-        checkSeerr().then(function (ok) {
-            if (!openState) return;
-            if (!ok && prefs.mode === 'req') { prefs.mode = 'lib'; }
-            renderChrome();
+        // in modalita' "Richiedi" serve sapere prima se Seerr risponde; la libreria parte subito
+        if (prefs.mode === 'req') {
+            checkSeerr().then(function () { if (openState) start(); });
+        } else {
             start();
-        });
+            checkSeerr();
+        }
     }
 
     function closeOverlay() {
@@ -501,9 +554,26 @@
     }
 
     // ---------- feed ----------
-    function setStatus(text) {
+    function setStatus(text, spin) {
         feed.innerHTML = '';
-        if (text) feed.appendChild(el('div', 'jt-status', esc(text)));
+        if (!text) return;
+        var box = el('div', 'jt-status');
+        if (spin) box.appendChild(el('div', 'jt-spin'));
+        box.appendChild(el('div', null, esc(text)));
+        feed.appendChild(box);
+    }
+
+    // Seerr non configurato o non raggiungibile: spiega cosa fare invece di mostrare una pagina vuota.
+    function showSetup() {
+        feed.innerHTML = '';
+        var box = el('div', 'jt-status');
+        box.appendChild(el('div', 'jt-sicon', '<span class="material-icons">' + (seerrErr ? 'cloud_off' : 'link') + '</span>'));
+        box.appendChild(el('div', 'jt-stitle', esc(L(seerrErr ? 'errTitle' : 'setupTitle'))));
+        box.appendChild(el('div', null, esc(L(seerrErr ? 'errBody' : 'setupBody')) + (seerrErr ? ' [' + esc(seerrErr) + ']' : '')));
+        var b = el('button', 'jt-btn jt-main-btn', esc(L('goLib')));
+        b.addEventListener('click', function () { prefs.mode = 'lib'; savePrefs(); renderChrome(); start(); });
+        box.appendChild(b);
+        feed.appendChild(box);
     }
 
     function start() {
@@ -514,17 +584,19 @@
         cards = [];
         loading = false;
         lastErr = '';
-        setStatus(L('loading'));
         feed.scrollTop = 0;
         if (observer) observer.disconnect();
         setupObserver();
 
+        if (prefs.mode === 'req' && !seerrOk) { showSetup(); return; }
+        setStatus(L('loading'), true);
+
         var prep;
-        if (prefs.mode === 'req' && seerrOk) {
+        if (prefs.mode === 'req') {
+            seerrErr = null;
             reqPage = 0; reqTotal = 1; reqSeen = {};
             prep = Promise.resolve();
         } else {
-            prefs.mode = 'lib';
             prep = fetchAllIds().then(buildLibPool);
         }
         prep.then(function () {
@@ -533,6 +605,7 @@
         }).then(function () {
             if (token !== sessionToken) return;
             if (!cards.length) {
+                if (prefs.mode === 'req' && seerrErr) { showSetup(); return; }
                 setStatus((prefs.mode === 'req' ? L('emptyReq') : L('emptyLib')) + (lastErr ? ' [' + lastErr + ']' : ''));
             }
         }).catch(function (e) {
@@ -546,8 +619,11 @@
         if (loading) return Promise.resolve();
         loading = true;
         var p = prefs.mode === 'req' ? loadReq(token, 0) : loadLib(token);
-        return p.catch(function (e) { lastErr = 'blocco: ' + errMsg(e); console.warn('[Owlfin JellyTok]', e); })
-            .then(function () { loading = false; });
+        return p.catch(function (e) {
+            lastErr = 'blocco: ' + errMsg(e);
+            if (prefs.mode === 'req') seerrErr = errCode(e);
+            console.warn('[Owlfin JellyTok]', e);
+        }).then(function () { loading = false; });
     }
 
     function loadLib(token) {
@@ -588,32 +664,38 @@
         var main = el('div', 'jt-main');
         var stage = el('div', 'jt-stage');
         if (e.still) { var still = el('img', 'jt-still'); still.alt = ''; still.decoding = 'async'; still.loading = 'lazy'; still.src = e.still; stage.appendChild(still); }
-        var loader = el('div', 'jt-loader jt-off');
+        var loader = el('div', 'jt-spin jt-loader jt-off');
         stage.appendChild(loader);
+        var flash = el('div', 'jt-flash', '<span class="material-icons">pause</span>');
+        stage.appendChild(flash);
         var prog = el('div', 'jt-prog', '<i></i>');
         stage.appendChild(prog);
 
         var info = el('div', 'jt-info');
-        info.appendChild(el('h2', 'jt-title', esc(e.title)));
 
+        // intestazione: locandina + tipo + titolo + dati
+        var head = el('div', 'jt-head');
+        if (e.poster) { var po = el('img', 'jt-poster'); po.alt = ''; po.decoding = 'async'; po.src = e.poster; head.appendChild(po); }
+        var ht = el('div', 'jt-headtxt');
+        ht.appendChild(el('div', 'jt-kicker', esc(L(e.type === 'tv' ? 'typeTv' : 'typeMovie')) + (e.src === 'req' ? ' · ' + esc(L('notInLib')) : '')));
+        ht.appendChild(el('h2', 'jt-title', esc(e.title)));
         var facts = el('div', 'jt-facts');
         if (e.rating) facts.appendChild(el('span', 'jt-rate', '<span class="material-icons">star</span>' + esc(e.rating.toFixed(1))));
         if (e.year) facts.appendChild(el('span', null, esc(e.year)));
         if (e.minutes) facts.appendChild(el('span', null, esc(fmtRuntime(e.minutes))));
-        if (facts.childNodes.length) info.appendChild(facts);
+        if (facts.childNodes.length) ht.appendChild(facts);
+        head.appendChild(ht);
+        info.appendChild(head);
 
-        if (e.genres && e.genres.length) {
-            var gen = el('div', 'jt-gen');
-            e.genres.forEach(function (g) { gen.appendChild(el('span', null, esc(g))); });
-            info.appendChild(gen);
-        }
-        if (e.overview) {
-            var ov = el('p', 'jt-ov', esc(e.overview));
-            ov.addEventListener('click', function (ev) { ev.stopPropagation(); ov.classList.toggle('jt-more'); });
-            info.appendChild(ov);
-        }
+        var gen = el('div', 'jt-gen');
+        (e.genres || []).forEach(function (g) { gen.appendChild(el('span', null, esc(g))); });
+        info.appendChild(gen);
 
-        var rec = { el: card, stage: stage, loader: loader, prog: prog.firstChild, e: e, iframe: null, note: null, paused: false, keys: undefined, ki: 0, idx: cards.length, lastTap: 0, tapT: 0, timer: 0, reqState: null };
+        var ov = el('p', 'jt-ov', esc(e.overview || ''));
+        ov.addEventListener('click', function (ev) { ev.stopPropagation(); ov.classList.toggle('jt-more'); });
+        info.appendChild(ov);
+
+        var rec = { el: card, stage: stage, loader: loader, flash: flash, prog: prog.firstChild, e: e, iframe: null, note: null, paused: false, keys: undefined, ki: 0, idx: cards.length, lastTap: 0, tapT: 0, timer: 0, reqState: null, ytMuted: null, synced: false };
 
         var actions = el('div', 'jt-actions');
         if (e.src === 'lib') {
@@ -743,44 +825,58 @@
         });
     }
 
-    function play(rec, forceMuted) {
+    function play(rec) {
         var key = rec.keys[rec.ki || 0];
         if (!key) { rec.loader.classList.add('jt-off'); setNote(rec, L('noTrailer')); return; }
-        var mute = forceMuted || prefs.muted;
         var f = document.createElement('iframe');
         f.allow = 'autoplay; encrypted-media; picture-in-picture';
         f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
         f.setAttribute('title', rec.e.title);
+        // sempre muto: e' l'unica condizione in cui iOS/Android lasciano partire il video da solo
         f.src = 'https://www.youtube-nocookie.com/embed/' + key +
-            '?autoplay=1&mute=' + (mute ? 1 : 0) +
-            '&controls=0&loop=1&playlist=' + key +
-            '&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0' +
+            '?autoplay=1&mute=1&controls=0&loop=1&playlist=' + key +
+            '&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&cc_load_policy=0&disablekb=1&fs=0' +
             '&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
         f.addEventListener('load', function () {
             try { f.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), '*'); } catch (e2) { /* ignore */ }
+            post(f, 'unloadModule', ['captions']);
         });
         rec.iframe = f;
         rec.paused = false;
+        rec.synced = false;
+        rec.ytMuted = true;
+        rec.flash.classList.remove('jt-hold', 'jt-go');
         rec.stage.appendChild(f);
         clearTimeout(rec.timer);
-        // Se entro 4s non parte: con audio -> riprova muto (autoplay bloccato); gia' muto -> mostra comunque.
-        rec.timer = setTimeout(function () {
-            if (rec.iframe !== f || f.classList.contains('jt-ready')) return;
-            if (!mute) {
-                f.remove(); rec.iframe = null;
-                prefs.muted = true; updateSoundIcon();
-                toast(L('audioBlocked'));
-                play(rec, true);
-            } else {
-                markReady(rec);
-            }
-        }, 4000);
+        // Se non parte: tre "spinte" (mute + play) a distanza di 0,9 s; poi si lascia il player
+        // cliccabile cosi' un tocco sul suo pulsante play (gesto reale dentro l'iframe) lo avvia sempre.
+        (function nudge(n) {
+            rec.timer = setTimeout(function () {
+                if (rec.iframe !== f || rec.started) return;
+                if (n < 3) { post(f, 'mute'); post(f, 'playVideo'); nudge(n + 1); }
+                else blocked(rec, f);
+            }, n < 3 ? 900 : 1200);
+        })(0);
+        rec.started = false;
+    }
+
+    function blocked(rec, f) {
+        if (rec.iframe !== f) return;
+        f.classList.add('jt-ready', 'jt-tap');
+        rec.loader.classList.add('jt-off');
+        setNote(rec, L('tapPlay'));
     }
 
     function markReady(rec) {
         clearTimeout(rec.timer);
-        if (rec.iframe) rec.iframe.classList.add('jt-ready');
+        rec.started = true;
+        if (rec.iframe) { rec.iframe.classList.add('jt-ready'); rec.iframe.classList.remove('jt-tap'); }
         rec.loader.classList.add('jt-off');
+        setNote(rec, null);
+        if (!rec.synced) {
+            rec.synced = true;
+            if (wantSound) applySound(rec);   // rispetta la scelta "audio acceso" fatta sul video precedente
+        }
     }
 
     function detach(rec) {
@@ -791,12 +887,19 @@
         rec.loader.classList.add('jt-off');
         rec.prog.style.transform = 'scaleX(0)';
         rec.paused = false;
+        rec.started = false;
+        if (rec.flash) rec.flash.classList.remove('jt-hold', 'jt-go');
     }
 
     function togglePause(rec) {
         if (!rec.iframe) return;
         rec.paused = !rec.paused;
         post(rec.iframe, rec.paused ? 'pauseVideo' : 'playVideo');
+        var fl = rec.flash;
+        fl.firstChild.textContent = rec.paused ? 'play_arrow' : 'pause';
+        fl.classList.remove('jt-go', 'jt-hold');
+        if (rec.paused) { fl.classList.add('jt-hold'); }
+        else { void fl.offsetWidth; fl.classList.add('jt-go'); }
     }
 
     // Messaggi dal player YouTube: stato, avanzamento, errori.
@@ -818,6 +921,7 @@
         if (d.event === 'onStateChange' && info === 1) markReady(rec);
         if (d.event === 'infoDelivery' && info) {
             if (info.playerState === 1) markReady(rec);
+            if (typeof info.muted === 'boolean') rec.ytMuted = info.muted;
             if (info.duration && info.currentTime != null) {
                 rec.prog.style.transform = 'scaleX(' + Math.min(1, info.currentTime / info.duration).toFixed(3) + ')';
             }
