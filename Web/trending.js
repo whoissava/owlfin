@@ -1207,8 +1207,30 @@
     }
 
     // Controllo economico: lavora solo se la home visibile non ha la sezione.
+    // Registro eventi + riquadro diagnostico (si vede da telefono, senza console).
+    const dbg = { t0: Date.now(), events: [], errors: 0, last: '', hidden: false };
+    function note(msg) {
+        if (msg === dbg.last) return;
+        dbg.last = msg;
+        dbg.events.push(Math.round((Date.now() - dbg.t0) / 1000) + 's ' + msg);
+        if (dbg.events.length > 12) dbg.events.shift();
+    }
+
     async function ensure() {
+        try {
+            await ensureInner();
+        } catch (e) {
+            dbg.errors++;
+            note('ERRORE ' + (e && e.message ? e.message : e));
+            console.error('[OwlHub Trending Now] ensure', e);
+        }
+    }
+
+    async function ensureInner() {
         const home = getActiveHome();
+        note((home ? 'home ok' : 'home NON trovata') + ' | sezione ' +
+            (document.querySelector('.owlhub-trending-section') ? 'presente' : 'assente') +
+            ' | client ' + (clientReady() ? 'pronto' : 'NON pronto') + ' | dati ' + (memItems ? memItems.length : 0));
         if (!home) return;
         if (!home._owlSeen) home._owlSeen = Date.now();
 
@@ -1260,6 +1282,45 @@
 
     // Rete di sicurezza: se qualcosa sfugge, entro pochi secondi ricompare.
     setInterval(() => { if (!document.hidden) ensure(); }, 3000);
+
+    function onHomeRoute() {
+        const h = location.hash.toLowerCase();
+        return h === '' || h === '#' || h.indexOf('#/home') === 0 || h.indexOf('#!/home') === 0;
+    }
+
+    function owlfinDebugChip() {
+        let chip = document.getElementById('owlfin-trending-debug');
+        const missing = !document.querySelector('.owlhub-trending-section');
+        if (dbg.hidden || !missing || Date.now() - dbg.t0 < 7000 || !onHomeRoute() || document.hidden) {
+            if (chip) chip.remove();
+            return;
+        }
+        if (!chip) {
+            chip = document.createElement('div');
+            chip.id = 'owlfin-trending-debug';
+            chip.style.cssText = 'position:fixed;left:8px;right:8px;bottom:76px;z-index:99999;max-height:42vh;overflow:auto;' +
+                'background:rgba(0,0,0,.86);color:#9fe3a0;font:11px/1.35 ui-monospace,Menlo,monospace;padding:8px 10px;' +
+                'border-radius:8px;white-space:pre-wrap;word-break:break-word;';
+            chip.addEventListener('click', () => { dbg.hidden = true; chip.remove(); });
+            document.body.appendChild(chip);
+        }
+        const containers = document.querySelectorAll('.homeSectionsContainer');
+        const visible = Array.from(containers).filter((c) => c.getClientRects().length > 0 && !c.closest('.hide, [hidden]')).length;
+        const rows = Array.from(document.querySelectorAll('.homeSectionsContainer .verticalSection .sectionTitle'))
+            .map((e) => e.textContent.trim()).slice(0, 8).join(' / ');
+        chip.textContent = [
+            'Owlfin Tendenza - sezione non visibile (tocca per chiudere)',
+            'hash: ' + location.hash,
+            'contenitori home: ' + containers.length + ', visibili: ' + visible,
+            'righe: ' + (rows || '(nessuna)'),
+            'client: ' + (clientReady() ? 'pronto' : 'NON pronto') + ', chiave TMDB: ' + (tmdbKey() ? 'si' : 'NO'),
+            'dati: ' + (memItems ? memItems.length : 0) + (shownStale ? ' (di riserva)' : '') + ', caricamento: ' + (inflight ? 'si' : 'no') + ', errori: ' + dbg.errors,
+            'motivo: ' + (lastReason || '-'),
+            'eventi:',
+            dbg.events.slice(-8).join('\n')
+        ].join('\n');
+    }
+    setInterval(owlfinDebugChip, 1500);
 
     window.__owlfinTrending = () => ({
         clientReady: clientReady(), tmdbKey: !!tmdbKey(), home: !!getActiveHome(),

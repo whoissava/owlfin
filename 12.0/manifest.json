@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.8.10.0",
+                "changelog": "2.8.10.0: Di Tendenza Ora: riquadro diagnostico sul telefono se la sezione manca per piu' di 7 secondi sulla home (mostra home, client, dati, motivo ed eventi), errori interni registrati invece di sparire in silenzio\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.8.10.0.zip",
+                "checksum": "122f99f51798abcbe0f3f7e325b1f5a3",
+                "timestamp": "2026-10-19T21:03:12Z"
+            },
+            {
                 "version": "2.8.9.0",
                 "changelog": "2.8.9.0: Di Tendenza Ora sempre visibile e nella posizione giusta: non dipende piu' da controlli bloccanti (costruita da zero se serve, riserva dagli ultimi titoli se TMDB non risponde, scheda con il motivo se non carica) e sta subito prima di 'Film aggiunti di recente' (aspetta la riga se la home si sta ancora caricando e la sposta appena compare)\n",
                 "targetAbi": "12.0.0.0",
