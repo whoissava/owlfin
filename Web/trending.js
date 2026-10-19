@@ -738,13 +738,12 @@
 
             let next = continueWatching.nextElementSibling;
 
-            while (next && !next.classList.contains('verticalSection')) {
+            while (next && (!next.classList.contains('verticalSection') ||
+                            next.classList.contains('owlhub-trending-section'))) {
                 next = next.nextElementSibling;
             }
 
-            if (next && !next.classList.contains('owlhub-trending-section')) {
-                return next;
-            }
+            if (next) return next;
         }
 
         // Diagnostica: elenca i titoli trovati per capire cosa manca.
@@ -752,10 +751,13 @@
             (scope || document).querySelectorAll('.homeSectionsContainer .verticalSection .sectionTitle')
         ).map(el => el.textContent.trim());
 
-        console.warn(
-            '[OwlHub Trending Now] Nessuna sezione di ancoraggio trovata. Sezioni disponibili:',
-            titles
-        );
+        if (!findAnchorSection.warned) {
+            findAnchorSection.warned = true;
+            console.warn(
+                '[OwlHub Trending Now] Nessuna sezione di ancoraggio trovata. Sezioni disponibili:',
+                titles
+            );
+        }
 
         return null;
     }
@@ -972,14 +974,70 @@
     // INIEZIONE
     // =====================================================
 
-    // La home attualmente visibile (le vecchie restano nel DOM con classe "hide").
+    // La home attualmente visibile (le vecchie restano nel DOM nascoste). Se nessuna risulta "misurabile"
+    // si usa comunque l'ultima non nascosta: inserire la sezione non costa nulla.
     function getActiveHome() {
         const all = Array.from(document.querySelectorAll('.homeSectionsContainer'));
+        let fallback = null;
         for (let i = all.length - 1; i >= 0; i--) {
             const c = all[i];
-            if (!c.closest('.hide') && c.offsetParent !== null) return c;
+            if (c.closest('.hide, [hidden]')) continue;
+            if (c.getClientRects().length > 0) return c;
+            if (!fallback) fallback = c;
         }
-        return null;
+        return fallback;
+    }
+
+    // Ancora di riserva: una qualunque riga della home (la seconda, cosi' resta sotto "Continua a guardare").
+    function fallbackAnchor(scope) {
+        const rows = Array.from(scope.querySelectorAll('.verticalSection'))
+            .filter((n) => !n.classList.contains('owlhub-trending-section'));
+        return rows[1] || rows[0] || null;
+    }
+
+    // Sezione costruita da zero: non dipende da nessuna riga esistente della home.
+    function buildStandaloneSection(items) {
+        const sec = document.createElement('div');
+        sec.className = 'verticalSection owlhub-trending-section';
+
+        const titleBox = document.createElement('div');
+        titleBox.className = 'sectionTitleContainer sectionTitleContainer-cards padded-left';
+        const title = document.createElement('h2');
+        title.className = 'sectionTitle sectionTitle-cards';
+        title.textContent = SECTION_TITLE;
+        titleBox.appendChild(title);
+
+        const row = document.createElement('div');
+        row.className = 'itemsContainer scrollSlider padded-left padded-right owlhub-trending-row';
+        items.forEach((item, index) => row.appendChild(buildCard(item, index + 1)));
+
+        sec.appendChild(titleBox);
+        sec.appendChild(row);
+        return sec;
+    }
+
+    function placeSection(home, built) {
+        const anchor = findAnchorSection(home) || fallbackAnchor(home);
+        if (anchor && anchor.parentNode) {
+            anchor.parentNode.insertBefore(built, anchor);
+        } else {
+            home.insertBefore(built, home.children[1] || null);
+        }
+    }
+
+    // Se la riga giusta compare dopo (la home si carica a pezzi) o cambia, la sezione la raggiunge:
+    // deve stare subito prima di "Film aggiunti di recente", non dove e' capitata.
+    function fixPosition(home) {
+        const sec = home.querySelector('.owlhub-trending-section');
+        if (!sec) return;
+        const anchor = findAnchorSection(home);
+        if (!anchor || anchor === sec || !anchor.parentNode) return;
+
+        let n = sec.nextElementSibling;
+        while (n && !n.classList.contains('verticalSection')) n = n.nextElementSibling;
+        if (n !== anchor || sec.parentNode !== anchor.parentNode) {
+            anchor.parentNode.insertBefore(sec, anchor);
+        }
     }
 
     function injectSection(items) {
@@ -990,18 +1048,37 @@
 
         ensureStyles();
 
-        const anchor = findAnchorSection(homeContainer);
+        let built = null;
+        try {
+            const anchor = findAnchorSection(homeContainer);
+            built = anchor ? buildSectionFromAnchor(anchor, items) : null;
+        } catch (e) {
+            built = null;
+        }
+        if (!built) built = buildStandaloneSection(items);
 
-        // Se la home non ha ancora finito di renderizzarsi non c'è
-        // l'ancora: ensure() riproverà ai prossimi cambi del DOM.
-        if (!anchor || !anchor.parentNode) return;
-
-        const built = buildSectionFromAnchor(anchor, items);
-        if (!built) return;
-
-        anchor.parentNode.insertBefore(built, anchor);
+        placeSection(homeContainer, built);
     }
 
+    // Se proprio non si riesce a caricare nulla, la sezione compare lo stesso con il motivo
+    // (utile da telefono, dove non c'e' la console) e un tocco per riprovare.
+    function injectError(reason) {
+        const home = getActiveHome();
+        if (!home || home.querySelector('.owlhub-trending-section')) return;
+        ensureStyles();
+
+        const sec = buildStandaloneSection([]);
+        sec.classList.add('owlhub-trending-error');
+        const row = sec.querySelector('.owlhub-trending-row');
+        const msg = document.createElement('div');
+        msg.style.cssText = 'padding:14px 16px;border-radius:10px;background:rgba(255,255,255,.08);' +
+            'font-size:.9em;line-height:1.4;cursor:pointer;max-width:90vw;';
+        msg.textContent = (_lang === 'it' ? 'Non disponibile: ' : 'Unavailable: ') + reason +
+            (_lang === 'it' ? ' - tocca per riprovare' : ' - tap to retry');
+        msg.addEventListener('click', () => { failedAt = 0; failCount = 0; sec.remove(); ensure(); });
+        row.appendChild(msg);
+        placeSection(home, sec);
+    }
 
     // =====================================================
     // CLICK FUORI DAL PLAYER
@@ -1032,6 +1109,23 @@
 
     let inflightAt = 0;
     let shownStale = false;
+    let lastReason = '';
+
+    // Riserva: se TMDB non risponde (o non ha titoli in comune con la libreria) si mostrano gli ultimi
+    // titoli aggiunti, cosi' la riga c'e' sempre; al prossimo tentativo riuscito viene sostituita.
+    async function fallbackFromLibrary() {
+        const apiClient = getApiClient();
+        const result = await withTimeout(apiClient.getItems(apiClient.getCurrentUserId(), {
+            IncludeItemTypes: 'Movie,Series',
+            Recursive: true,
+            SortBy: 'DateCreated',
+            SortOrder: 'Descending',
+            Fields: 'ProviderIds,ProductionYear,Genres,OfficialRating,Studios,BackdropImageTags',
+            EnableImages: true,
+            Limit: MAX_ITEMS
+        }), 20000);
+        return enrichWithVisuals((result.Items || []).slice(0, MAX_ITEMS));
+    }
 
     async function loadData() {
         if (memItems && memDay === todayKey()) return memItems;
@@ -1043,15 +1137,18 @@
             return memItems;
         }
 
-        // Ieri / non aggiornata: si mostra questa subito, mentre sotto si scarica la nuova.
+        // Ieri / di riserva: si mostra questa subito, mentre sotto si scarica quella di oggi.
         const stale = memItems || getStaleCache();
         const quick = () => { if (stale) shownStale = true; return stale; };
 
-        // Client o chiave non ancora pronti (primo avvio): niente errore, si riprova al prossimo giro.
-        if (!clientReady() || !tmdbKey()) return quick();
+        // Client Jellyfin non ancora pronto (primo avvio): non e' un errore, si riprova al prossimo giro.
+        if (!clientReady()) {
+            lastReason = 'Jellyfin non ancora pronto';
+            return quick();
+        }
 
-        // Dopo un errore backoff breve e crescente (5 s, 10 s ... max 30 s).
-        if (Date.now() - failedAt < Math.min(5000 * failCount, 30000)) return quick();
+        // Dopo un errore backoff crescente (5 s, 10 s ... max 30 s; 2 minuti se c'e' gia' qualcosa da mostrare).
+        if (Date.now() - failedAt < Math.min(5000 * failCount, stale ? 120000 : 30000)) return quick();
 
         // Un caricamento rimasto appeso oltre 90 s si abbandona e si ricomincia.
         if (inflight && Date.now() - inflightAt > 90000) inflight = null;
@@ -1059,36 +1156,52 @@
         if (!inflight) {
             inflightAt = Date.now();
             inflight = (async () => {
+                let matched = null;
                 try {
+                    if (!tmdbKey()) throw new Error('chiave TMDB mancante');
                     const tmdbList = await withRetry(() => withTimeout(fetchTrendingFromTMDB(), 12000), 3, 1500);
-                    let matched = await withRetry(() => withTimeout(matchLibraryItems(tmdbList), 30000), 2, 1500);
+                    matched = await withRetry(() => withTimeout(matchLibraryItems(tmdbList), 30000), 2, 1500);
                     matched = await enrichWithVisuals(matched);
-                    if (matched.length) {
-                        const changed = shownStale && (!stale ||
-                            matched.map((m) => m.Id).join() !== stale.map((m) => m.Id).join());
-                        setCache(matched);
-                        memItems = matched;
-                        memDay = todayKey();
-                        failCount = 0;
-                        if (changed) {
-                            // Quella mostrata era di ieri: si sostituisce con quella aggiornata.
-                            document.querySelectorAll('.owlhub-trending-section').forEach((n) => n.remove());
-                        }
-                        shownStale = false;
-                    } else {
-                        failedAt = Date.now();
-                        failCount++;
-                    }
-                    return matched;
                 } catch (e) {
-                    failedAt = Date.now();
-                    failCount++;
+                    lastReason = 'TMDB: ' + (e && e.message ? e.message : e);
                     console.error('[OwlHub Trending Now]', e);
-                    return null;
-                } finally {
-                    inflight = null;
+                    matched = null;
                 }
-            })();
+
+                if (matched && matched.length) {
+                    const changed = shownStale && (!stale ||
+                        matched.map((m) => m.Id).join() !== stale.map((m) => m.Id).join());
+                    setCache(matched);
+                    memItems = matched;
+                    memDay = todayKey();
+                    failCount = 0;
+                    lastReason = '';
+                    if (changed) {
+                        // Quella mostrata era di ieri o di riserva: si sostituisce con quella di oggi.
+                        document.querySelectorAll('.owlhub-trending-section').forEach((n) => n.remove());
+                    }
+                    shownStale = false;
+                    return matched;
+                }
+
+                if (!lastReason) lastReason = 'nessun titolo di tendenza presente in libreria';
+                failedAt = Date.now();
+                failCount++;
+
+                if (!memItems) {
+                    try {
+                        const fb = await fallbackFromLibrary();
+                        if (fb.length) {
+                            memItems = fb;      // memDay resta vuoto: la prossima volta si riprova con TMDB
+                            shownStale = true;
+                        }
+                    } catch (e) {
+                        lastReason = 'libreria: ' + (e && e.message ? e.message : e);
+                        console.error('[OwlHub Trending Now] riserva', e);
+                    }
+                }
+                return memItems || null;
+            })().finally(() => { inflight = null; });
         }
         return stale ? quick() : inflight;
     }
@@ -1097,13 +1210,26 @@
     async function ensure() {
         const home = getActiveHome();
         if (!home) return;
-        if (home.querySelector('.owlhub-trending-section')) {
+        if (!home._owlSeen) home._owlSeen = Date.now();
+
+        const existing = home.querySelector('.owlhub-trending-section');
+        const isError = !!existing && existing.classList.contains('owlhub-trending-error');
+        if (existing && !isError) {
+            fixPosition(home);
             if (shownStale) loadData();
             return;
         }
 
         const items = await loadData();
-        if (items && items.length) injectSection(items);
+        if (items && items.length) {
+            // La home si carica a pezzi: per qualche secondo si aspetta la riga giusta invece di
+            // mettere la sezione a caso. Se non arriva, si ripiega e poi la si sposta quando compare.
+            if (!findAnchorSection(home) && Date.now() - home._owlSeen < 4000) return;
+            if (isError) existing.remove();
+            injectSection(items);
+        } else if (!existing && Date.now() - home._owlSeen > 12000) {
+            injectError(lastReason || (_lang === 'it' ? 'caricamento in corso' : 'loading'));
+        }
     }
 
     let debounceTimer = null;
@@ -1115,7 +1241,7 @@
     // Home che si (ri)costruisce: osserva il DOM, ma agisce solo se manca la sezione.
     const observer = new MutationObserver(() => {
         const home = getActiveHome();
-        if (home && !home.querySelector('.owlhub-trending-section')) schedule(250);
+        if (home) schedule(home.querySelector('.owlhub-trending-section') ? 700 : 250);
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
@@ -1138,7 +1264,7 @@
     window.__owlfinTrending = () => ({
         clientReady: clientReady(), tmdbKey: !!tmdbKey(), home: !!getActiveHome(),
         section: !!document.querySelector('.owlhub-trending-section'),
-        items: memItems ? memItems.length : 0, staleShown: shownStale, loading: !!inflight, failCount
+        items: memItems ? memItems.length : 0, staleShown: shownStale, loading: !!inflight, failCount, reason: lastReason
     });
 
     window.addEventListener('online', () => { failedAt = 0; failCount = 0; burst(); });

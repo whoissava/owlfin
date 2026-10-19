@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.11.9.0",
+                "changelog": "1.11.9.0: Di Tendenza Ora sempre visibile e nella posizione giusta: non dipende piu' da controlli bloccanti (costruita da zero se serve, riserva dagli ultimi titoli se TMDB non risponde, scheda con il motivo se non carica) e sta subito prima di 'Film aggiunti di recente' (aspetta la riga se la home si sta ancora caricando e la sposta appena compare)\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.11.9.0.zip",
+                "checksum": "26e22235694761a223b7e164d1fb2bb5",
+                "timestamp": "2026-10-19T20:46:53Z"
+            },
+            {
                 "version": "1.11.7.0",
                 "changelog": "1.11.7.0: Di Tendenza Ora: compare subito anche al primo avvio (mostra la lista di ieri e la aggiorna in background), immagini o richieste lente non la bloccano piu', funzione di diagnostica window.__owlfinTrending()\n",
                 "targetAbi": "10.11.0.0",
