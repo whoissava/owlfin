@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.11.7.0",
+                "changelog": "1.11.7.0: Di Tendenza Ora: compare subito anche al primo avvio (mostra la lista di ieri e la aggiorna in background), immagini o richieste lente non la bloccano piu', funzione di diagnostica window.__owlfinTrending()\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.11.7.0.zip",
+                "checksum": "a2ce1644c2e28ddf82a50f3bd7f8a25a",
+                "timestamp": "2026-10-19T09:37:44Z"
+            },
+            {
                 "version": "1.11.6.0",
                 "changelog": "1.11.6.0: Menu laterale: sezione 'Owlfin' subito sotto Home e Preferiti con 'Sfoglia Generi' e 'Scopri' (stesso stile delle voci native); 'Di Tendenza Ora' compare al primo avvio senza ricaricare (attende client e rete pronti, ritenta con pausa breve invece di 60 secondi)\n",
                 "targetAbi": "10.11.0.0",

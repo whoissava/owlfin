@@ -132,6 +132,12 @@
 
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+    function withTimeout(promise, ms) {
+        let timer;
+        const limit = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('timeout')), ms); });
+        return Promise.race([promise, limit]).finally(() => clearTimeout(timer));
+    }
+
     async function withRetry(fn, tries, delay) {
         let last;
         for (let i = 0; i < tries; i++) {
@@ -196,6 +202,18 @@
     }
 
 
+    // Cache scaduta (di ieri): meglio mostrare subito quella e aggiornare in background che niente.
+    function getStaleCache() {
+        try {
+            const raw = localStorage.getItem(CACHE_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            return data && data.items && data.items.length ? data.items : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
     function setCache(items) {
         try {
             localStorage.setItem(CACHE_KEY, JSON.stringify({
@@ -254,7 +272,7 @@
     // COLORE DOMINANTE
     // =====================================================
 
-    function getDominantColor(imgUrl) {
+    function getDominantColorRaw(imgUrl) {
         return new Promise((resolve) => {
             const img = new Image();
             img.crossOrigin = 'anonymous';
@@ -294,6 +312,12 @@
         });
     }
 
+
+    // Il colore e' solo un dettaglio estetico: se l'immagine tarda (primo avvio, il server deve ancora
+    // ridimensionarla) non si aspetta oltre 3 secondi.
+    function getDominantColor(imgUrl) {
+        return Promise.race([getDominantColorRaw(imgUrl), sleep(3000).then(() => 'rgb(35,35,40)')]);
+    }
 
     async function enrichWithVisuals(items) {
 
@@ -1006,6 +1030,9 @@
     let failedAt = 0;
     let failCount = 0;
 
+    let inflightAt = 0;
+    let shownStale = false;
+
     async function loadData() {
         if (memItems && memDay === todayKey()) return memItems;
 
@@ -1016,23 +1043,38 @@
             return memItems;
         }
 
+        // Ieri / non aggiornata: si mostra questa subito, mentre sotto si scarica la nuova.
+        const stale = memItems || getStaleCache();
+        const quick = () => { if (stale) shownStale = true; return stale; };
+
         // Client o chiave non ancora pronti (primo avvio): niente errore, si riprova al prossimo giro.
-        if (!clientReady() || !tmdbKey()) return null;
+        if (!clientReady() || !tmdbKey()) return quick();
 
         // Dopo un errore backoff breve e crescente (5 s, 10 s ... max 30 s).
-        if (Date.now() - failedAt < Math.min(5000 * failCount, 30000)) return null;
+        if (Date.now() - failedAt < Math.min(5000 * failCount, 30000)) return quick();
+
+        // Un caricamento rimasto appeso oltre 90 s si abbandona e si ricomincia.
+        if (inflight && Date.now() - inflightAt > 90000) inflight = null;
 
         if (!inflight) {
+            inflightAt = Date.now();
             inflight = (async () => {
                 try {
-                    const tmdbList = await withRetry(fetchTrendingFromTMDB, 3, 1500);
-                    let matched = await withRetry(() => matchLibraryItems(tmdbList), 2, 1500);
+                    const tmdbList = await withRetry(() => withTimeout(fetchTrendingFromTMDB(), 12000), 3, 1500);
+                    let matched = await withRetry(() => withTimeout(matchLibraryItems(tmdbList), 30000), 2, 1500);
                     matched = await enrichWithVisuals(matched);
                     if (matched.length) {
+                        const changed = shownStale && (!stale ||
+                            matched.map((m) => m.Id).join() !== stale.map((m) => m.Id).join());
                         setCache(matched);
                         memItems = matched;
                         memDay = todayKey();
                         failCount = 0;
+                        if (changed) {
+                            // Quella mostrata era di ieri: si sostituisce con quella aggiornata.
+                            document.querySelectorAll('.owlhub-trending-section').forEach((n) => n.remove());
+                        }
+                        shownStale = false;
                     } else {
                         failedAt = Date.now();
                         failCount++;
@@ -1048,13 +1090,17 @@
                 }
             })();
         }
-        return inflight;
+        return stale ? quick() : inflight;
     }
 
     // Controllo economico: lavora solo se la home visibile non ha la sezione.
     async function ensure() {
         const home = getActiveHome();
-        if (!home || home.querySelector('.owlhub-trending-section')) return;
+        if (!home) return;
+        if (home.querySelector('.owlhub-trending-section')) {
+            if (shownStale) loadData();
+            return;
+        }
 
         const items = await loadData();
         if (items && items.length) injectSection(items);
@@ -1088,6 +1134,12 @@
 
     // Rete di sicurezza: se qualcosa sfugge, entro pochi secondi ricompare.
     setInterval(() => { if (!document.hidden) ensure(); }, 3000);
+
+    window.__owlfinTrending = () => ({
+        clientReady: clientReady(), tmdbKey: !!tmdbKey(), home: !!getActiveHome(),
+        section: !!document.querySelector('.owlhub-trending-section'),
+        items: memItems ? memItems.length : 0, staleShown: shownStale, loading: !!inflight, failCount
+    });
 
     window.addEventListener('online', () => { failedAt = 0; failCount = 0; burst(); });
 
