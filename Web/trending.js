@@ -316,7 +316,7 @@
     // Il colore e' solo un dettaglio estetico: se l'immagine tarda (primo avvio, il server deve ancora
     // ridimensionarla) non si aspetta oltre 3 secondi.
     function getDominantColor(imgUrl) {
-        return Promise.race([getDominantColorRaw(imgUrl), sleep(1500).then(() => 'rgb(35,35,40)')]);
+        return Promise.race([getDominantColorRaw(imgUrl), sleep(3000).then(() => 'rgb(35,35,40)')]);
     }
 
     async function enrichWithVisuals(items) {
@@ -1101,7 +1101,7 @@
     // INIT
     // =====================================================
 
-    const OWLFIN_TREND_VER = '1.11.12';
+    const OWLFIN_TREND_VER = '1.11.13';
     let memItems = null;
     let memDay = '';
     let inflight = null;
@@ -1179,7 +1179,7 @@
                     lastReason = '';
                     if (changed) {
                         // Quella mostrata era di ieri o di riserva: si sostituisce con quella di oggi.
-                        document.querySelectorAll('.owlhub-trending-section').forEach((n) => n.remove());
+                        setTimeout(() => { if (typeof owlfinRefresh === 'function') owlfinRefresh(); }, 0);
                     }
                     shownStale = false;
                     return matched;
@@ -1217,187 +1217,211 @@
         if (dbg.events.length > 12) dbg.events.shift();
     }
 
-    async function ensure() {
+    // =====================================================
+    // PERSISTENZA (stessa logica delle righe studi e della barra generi)
+    // =====================================================
+    // A ogni navigazione (viewshow / hashchange) si toglie quello che c'era e si ritenta ogni 250 ms
+    // finche' la home esiste. La sezione compare SUBITO come "guscio" (Caricamento...) senza aspettare
+    // i dati e si riempie appena arrivano: niente attese sui dati, niente osservatori.
+
+    let navGen = 0;
+    let navAt = Date.now();
+    let navState = null;
+    let loopTimer = null;
+    let lastHash = location.hash;
+    const SHELL_FAIL_MS = 12000;
+
+    function trendingSections() {
+        return Array.from(document.querySelectorAll('.owlhub-trending-section'));
+    }
+
+    function showShellState(sec, state, text) {
+        sec.setAttribute('data-owlfin-state', state);
+        const row = sec.querySelector('.owlhub-trending-row');
+        if (!row) return;
+        row.innerHTML = '';
+        const msg = document.createElement('div');
+        msg.className = 'owlhub-trending-msg';
+        msg.style.cssText = 'padding:14px 16px;border-radius:10px;background:rgba(255,255,255,.08);' +
+            'font-size:.9em;line-height:1.4;max-width:90vw;opacity:.85;';
+        msg.textContent = text;
+        if (state === 'error') {
+            msg.style.cursor = 'pointer';
+            msg.addEventListener('click', () => {
+                failedAt = 0; failCount = 0;
+                sec._owlT0 = Date.now();
+                showShellState(sec, 'loading', t.loading);
+                restart();
+            });
+        }
+        row.appendChild(msg);
+    }
+
+    function buildShell() {
+        const sec = buildStandaloneSection([]);
+        showShellState(sec, 'loading', t.loading);
+        sec._owlStandalone = true;
+        return sec;
+    }
+
+    // Titoli pronti: si sostituisce il guscio con la sezione vera (con l'aspetto della riga "Film
+    // aggiunti di recente" se esiste, altrimenti costruita da zero).
+    function applyItems(sec, items) {
+        const home = getActiveHome();
+        const anchor = home ? findAnchorSection(home) : null;
+        let built = null;
         try {
-            await ensureInner();
+            built = anchor && anchor !== sec ? buildSectionFromAnchor(anchor, items) : null;
         } catch (e) {
+            built = null;
+        }
+        const fromAnchor = !!built;
+        if (!built) built = buildStandaloneSection(items);
+        built.setAttribute('data-owlfin-state', 'ready');
+        built._owlStandalone = !fromAnchor;
+        built._owlItems = items;
+        sec.replaceWith(built);
+        if (home) fixPosition(home);
+    }
+
+    function fillSection(sec) {
+        if (!sec.isConnected || sec._owlFilling) return;
+        if (!sec._owlT0) sec._owlT0 = Date.now();
+        sec._owlFilling = true;
+        let promise;
+        try { promise = Promise.resolve(loadData()); } catch (e) { promise = Promise.reject(e); }
+        promise.then((items) => {
+            sec._owlFilling = false;
+            if (!sec.isConnected) return;
+            if (items && items.length) {
+                applyItems(sec, items);
+            } else if (Date.now() - sec._owlT0 > SHELL_FAIL_MS && sec.getAttribute('data-owlfin-state') !== 'error') {
+                showShellState(sec, 'error',
+                    (_lang === 'it' ? 'Non disponibile: ' : 'Unavailable: ') +
+                    (lastReason || (_lang === 'it' ? 'caricamento in corso' : 'loading')) +
+                    (_lang === 'it' ? ' - tocca per riprovare' : ' - tap to retry'));
+            }
+        }).catch((e) => {
+            sec._owlFilling = false;
             dbg.errors++;
             note('ERRORE ' + (e && e.message ? e.message : e));
-            console.error('[OwlHub Trending Now] ensure', e);
-        }
-    }
-
-    async function ensureInner() {
-        const home = getActiveHome();
-        note((home ? 'home ok' : 'home NON trovata') + ' | sezione ' +
-            (document.querySelector('.owlhub-trending-section') ? 'presente' : 'assente') +
-            ' | client ' + (clientReady() ? 'pronto' : 'NON pronto') + ' | dati ' + (memItems ? memItems.length : 0));
-        if (!home) return;
-        if (!home._owlSeen) home._owlSeen = Date.now();
-
-        const existing = home.querySelector('.owlhub-trending-section');
-        const isError = !!existing && existing.classList.contains('owlhub-trending-error');
-        if (existing && !isError) {
-            fixPosition(home);
-            recordOk();
-            if (shownStale) loadData();
-            return;
-        }
-
-        const items = await loadData();
-        if (items && items.length) {
-            // La home si carica a pezzi: per qualche secondo si aspetta la riga giusta invece di
-            // mettere la sezione a caso. Se non arriva, si ripiega e poi la si sposta quando compare.
-            if (!findAnchorSection(home) && Date.now() - home._owlSeen < 4000) return;
-            if (isError) existing.remove();
-            injectSection(items);
-        } else if (!existing && Date.now() - home._owlSeen > 12000) {
-            injectError(lastReason || (_lang === 'it' ? 'caricamento in corso' : 'loading'));
-        }
-    }
-
-    let debounceTimer = null;
-    function schedule(delay) {
-        if (debounceTimer) return;
-        debounceTimer = setTimeout(() => { debounceTimer = null; ensure(); }, delay);
-    }
-
-    // Home che si (ri)costruisce: osserva il DOM, ma agisce solo se manca la sezione.
-    // Titoli pronti da mostrare SUBITO, senza aspettare nulla: quelli di oggi, altrimenti quelli di ieri
-    // o di riserva (in quel caso parte anche l'aggiornamento in background).
-    function peekItems() {
-        if (memItems && memItems.length && memDay === todayKey()) return memItems;
-        const fresh = getCache();
-        if (fresh && fresh.length) { memItems = fresh; memDay = todayKey(); return fresh; }
-        const old = memItems || getStaleCache();
-        if (old && old.length) {
-            shownStale = true;
-            loadData().catch(() => {});
-            return old;
-        }
-        return null;
-    }
-
-    // Se i titoli ci sono e la home ha la riga giusta, la sezione compare nello stesso istante,
-    // sincrona: non passa da timer, da attese o da una ricarica della pagina.
-    let okLogged = false;
-    function recordOk() {
-        if (okLogged) return;
-        okLogged = true;
-        try {
-            localStorage.setItem('owlfin_trending_ok', JSON.stringify({
-                at: Date.now(), secs: Math.round((Date.now() - dbg.t0) / 100) / 10, v: OWLFIN_TREND_VER
-            }));
-        } catch (e) { /* nessun problema */ }
-    }
-    function lastOkText() {
-        try {
-            const d = JSON.parse(localStorage.getItem('owlfin_trending_ok') || 'null');
-            return d ? (d.secs + ' s dopo l\'avvio (v' + d.v + ')') : '-';
-        } catch (e) { return '-'; }
-    }
-
-    function owlfinQuickInject() {
-        const home = getActiveHome();
-        if (!home) return;
-        if (!home._owlSeen) home._owlSeen = Date.now();
-
-        const existing = home.querySelector('.owlhub-trending-section');
-        const isError = !!existing && existing.classList.contains('owlhub-trending-error');
-        if (existing && !isError) { fixPosition(home); recordOk(); return; }
-
-        const items = peekItems();
-        if (!items || !items.length) return;
-
-        // Senza la riga giusta si aspetta al massimo 4 s, poi si ripiega (e la si sposta quando arriva).
-        if (!findAnchorSection(home)) {
-            const left = 4000 - (Date.now() - home._owlSeen);
-            if (left > 0) { setTimeout(owlfinQuickInject, left + 50); return; }
-        }
-        if (isError) existing.remove();
-        injectSection(items);
-        note('sezione inserita subito');
-    }
-
-    // Una sola volta per fotogramma, ma senza mai rimandare: non puo' andare in "fame" come il debounce.
-    let qiPending = false;
-    function qiSoon() {
-        if (qiPending) return;
-        qiPending = true;
-        requestAnimationFrame(() => {
-            qiPending = false;
-            try { owlfinQuickInject(); } catch (e) { dbg.errors++; note('ERRORE ' + (e && e.message ? e.message : e)); }
+            console.error('[OwlHub Trending Now] fill', e);
         });
     }
 
-    const observer = new MutationObserver(() => {
+    // Titoli di oggi arrivati dopo quelli di ieri: le sezioni presenti si rifanno.
+    function owlfinRefresh() {
+        trendingSections().forEach((sec) => {
+            if (sec._owlItems && memItems) applyItems(sec, memItems);
+        });
+    }
+
+    function schedule(st, delay) {
+        clearTimeout(loopTimer);
+        loopTimer = setTimeout(() => { loopTimer = null; step(st); }, delay);
+    }
+
+    function step(st) {
+        if (st.gen !== navGen) return;
+        if (!onHomeRoute()) return;
+
         const home = getActiveHome();
-        if (!home) return;
-        qiSoon();
-        schedule(home.querySelector('.owlhub-trending-section') ? 700 : 250);
-    });
-    observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+        let sec = home ? home.querySelector('.owlhub-trending-section') : null;
+        let done = false;
 
-    // Caricamento dei dati anticipato: parte appena il client Jellyfin e' pronto, anche se la home
-    // non e' ancora comparsa, cosi' quando arrivano le righe i titoli sono gia' pronti.
-    (function owlfinWarmUp() {
-        let n = 0;
-        const tick = () => {
-            if (memItems && memItems.length && memDay === todayKey()) { qiSoon(); return; }
-            if (clientReady() && tmdbKey()) {
-                loadData().then(() => qiSoon()).catch(() => {});
+        // Prefetch: i titoli iniziano a caricarsi appena il client e' pronto, anche prima della home.
+        if (!memItems && clientReady() && tmdbKey()) loadData().catch(() => {});
+
+        if (home) {
+            ensureStyles();
+            if (!home._owlSeen) home._owlSeen = Date.now();
+            // Il guscio compare appena c'e' la riga giusta ("Film aggiunti di recente"); se non arriva
+            // entro 3 s dalla comparsa della home si inserisce comunque (e si sposta quando la riga arriva).
+            if (!sec && (findAnchorSection(home) || Date.now() - home._owlSeen > 3000)) {
+                sec = buildShell();
+                placeSection(home, sec);
             }
-            if (++n < 400) setTimeout(tick, n < 20 ? 300 : 1000);
-        };
-        tick();
-    })();
+            if (sec) fixPosition(home);
 
-    // Eventi di navigazione / ritorno in foreground: piu' tentativi ravvicinati,
-    // perche' la home carica le sue righe in modo asincrono.
-    function burst() {
-        qiSoon();
-        [100, 600, 1500, 3500].forEach((ms) => setTimeout(() => { qiSoon(); ensure(); }, ms));
-    }
-    document.addEventListener('viewshow', burst);
-    window.addEventListener('pageshow', burst);
-    window.addEventListener('hashchange', burst);
-    window.addEventListener('popstate', burst);
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') burst();
-    });
-
-    // Rete di sicurezza: se qualcosa sfugge, entro pochi secondi ricompare.
-    setInterval(() => { if (!document.hidden) ensure(); }, 3000);
-
-    let fastUntil = Date.now() + 60000;
-    let homeSince = 0;
-    function onRoute() {
-        if (onHomeRoute()) {
-            if (!homeSince) homeSince = Date.now();
-            fastUntil = Math.max(fastUntil, Date.now() + 20000);
-        } else {
-            homeSince = 0;
+            const state = sec ? sec.getAttribute('data-owlfin-state') : null;
+            if (!sec) {
+                // in attesa della riga giusta: niente da fare, si ritenta
+            } else if (state !== 'ready') {
+                fillSection(sec);
+            } else {
+                const anchor = findAnchorSection(home);
+                if (anchor && sec._owlStandalone && sec._owlItems) {
+                    // la riga giusta e' arrivata dopo: si rifa' con lo stesso aspetto della riga
+                    applyItems(sec, sec._owlItems);
+                } else if (anchor || Date.now() - navAt > 10000) {
+                    done = true;
+                }
+                if (shownStale && !inflight) loadData();
+            }
         }
-        burst();
+
+        note((home ? 'home ok' : 'home NON trovata') + ' | sezione ' +
+            (sec ? sec.getAttribute('data-owlfin-state') : 'assente') +
+            ' | client ' + (clientReady() ? 'pronto' : 'NON pronto') + ' | dati ' + (memItems ? memItems.length : 0));
+
+        if (!done) {
+            st.tries++;
+            if (st.tries > 340) return;                     // 10 s ogni 250 ms, poi ogni secondo fino a ~5 minuti
+            schedule(st, st.tries < 40 ? 250 : 1000);
+        }
     }
-    setInterval(() => { if (!document.hidden && Date.now() < fastUntil) qiSoon(); }, 150);
+
+    function restart() {
+        clearTimeout(loopTimer);
+        loopTimer = null;
+        navState = { gen: navGen, tries: 0 };
+        step(navState);
+    }
+
+    function onNavigate() {
+        navGen++;
+        navAt = Date.now();
+        trendingSections().forEach((n) => n.remove());      // come removeUI() di studi e generi
+        navState = { gen: navGen, tries: 0 };
+        clearTimeout(loopTimer);
+        loopTimer = null;
+        step(navState);
+    }
+
+    function ensure() { restart(); }
+
+    function routeChanged() {
+        if (location.hash !== lastHash) {
+            lastHash = location.hash;
+            onNavigate();
+        }
+    }
+
+    document.addEventListener('viewshow', onNavigate);
+    window.addEventListener('hashchange', routeChanged);
+    window.addEventListener('popstate', routeChanged);
+    window.addEventListener('pageshow', () => restart());
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') restart(); });
     ['pushState', 'replaceState'].forEach((fn) => {
         try {
             const orig = history[fn];
             if (typeof orig !== 'function') return;
             history[fn] = function () {
                 const r = orig.apply(this, arguments);
-                setTimeout(onRoute, 0);
+                setTimeout(routeChanged, 0);
                 return r;
             };
         } catch (e) { /* nessun problema */ }
     });
-    window.addEventListener('hashchange', onRoute);
-    window.addEventListener('popstate', onRoute);
-    window.addEventListener('load', onRoute);
-    document.addEventListener('DOMContentLoaded', onRoute);
-    document.addEventListener('readystatechange', onRoute);
-    if (location.hash === '' || location.hash === '#' || /^#!?\/home/i.test(location.hash)) homeSince = Date.now();
+
+    // Rete di sicurezza: se la home e' presente ma la sezione sparisce (home ridisegnata), si riparte.
+    setInterval(() => {
+        if (document.hidden || !onHomeRoute()) return;
+        const home = getActiveHome();
+        if (!home) { if (!loopTimer) restart(); return; }
+        const sec = home.querySelector('.owlhub-trending-section');
+        if (!sec) restart();
+    }, 1500);
 
     function onHomeRoute() {
         const h = location.hash.toLowerCase();
@@ -1406,8 +1430,8 @@
 
     function owlfinDebugChip() {
         let chip = document.getElementById('owlfin-trending-debug');
-        const missing = !document.querySelector('.owlhub-trending-section');
-        if (dbg.hidden || !missing || !homeSince || Date.now() - homeSince < 8000 || !onHomeRoute() || document.hidden) {
+        const missing = !document.querySelector('.owlhub-trending-section[data-owlfin-state="ready"]');
+        if (dbg.hidden || !missing || Date.now() - navAt < 9000 || !onHomeRoute() || document.hidden) {
             if (chip) chip.remove();
             return;
         }
@@ -1426,8 +1450,7 @@
             .map((e) => e.textContent.trim()).slice(0, 8).join(' / ');
         chip.textContent = [
             'Owlfin Tendenza v' + OWLFIN_TREND_VER + ' - sezione non visibile (tocca per chiudere)',
-            'hash: ' + location.hash + ', pagina: ' + document.readyState + ', ApiClient: ' + (window.ApiClient ? 'si' : 'NO'),
-            'sulla home da ' + Math.round((Date.now() - homeSince) / 1000) + ' s, ultima volta riuscita: ' + lastOkText(),
+            'hash: ' + location.hash,
             'contenitori home: ' + containers.length + ', visibili: ' + visible,
             'righe: ' + (rows || '(nessuna)'),
             'client: ' + (clientReady() ? 'pronto' : 'NON pronto') + ', chiave TMDB: ' + (tmdbKey() ? 'si' : 'NO'),
@@ -1445,8 +1468,8 @@
         items: memItems ? memItems.length : 0, staleShown: shownStale, loading: !!inflight, failCount, reason: lastReason
     });
 
-    window.addEventListener('online', () => { failedAt = 0; failCount = 0; burst(); });
+    window.addEventListener('online', () => { failedAt = 0; failCount = 0; restart(); });
 
-    setTimeout(ensure, 800);
+    onNavigate();
 
 })();

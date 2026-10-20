@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.11.13.0",
+                "changelog": "1.11.13.0: Di Tendenza Ora: ripartito dal codice di ieri con la stessa logica di persistenza di studi e generi: a ogni navigazione la sezione compare subito come guscio (Caricamento...) appena c'e la riga giusta e si riempie quando arrivano i titoli; i titoli si caricano gia' prima della home; niente osservatori ne' ricariche della pagina\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.11.13.0.zip",
+                "checksum": "c972e955d366e8ff11d0792f04c4030e",
+                "timestamp": "2026-10-20T18:17:34Z"
+            },
+            {
                 "version": "1.11.12.0",
                 "changelog": "1.11.12.0: Di Tendenza Ora: controllo ogni 150 ms nel primo minuto e dopo ogni ritorno alla home (il plugin parte prima dell'app), agganciato anche ai cambi pagina via pushState, nessun errore se il body non esiste ancora; il riquadro diagnostico mostra la versione, compare solo dopo 8 secondi sulla home e indica quando e riuscita l'ultima volta\n",
                 "targetAbi": "10.11.0.0",
