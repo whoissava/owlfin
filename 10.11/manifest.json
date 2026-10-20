@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.11.11.0",
+                "changelog": "1.11.11.0: Di Tendenza Ora: i titoli si caricano subito all'avvio (senza aspettare la home) e la sezione compare nell'istante in cui la home ha la riga giusta, anche se la home viene ridisegnata; niente ricarica della pagina\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.11.11.0.zip",
+                "checksum": "f96baa83a52767ac2ddf5eb10095fd60",
+                "timestamp": "2026-10-20T08:16:26Z"
+            },
+            {
                 "version": "1.11.10.0",
                 "changelog": "1.11.10.0: Di Tendenza Ora: riquadro diagnostico sul telefono se la sezione manca per piu' di 7 secondi sulla home (mostra home, client, dati, motivo ed eventi), errori interni registrati invece di sparire in silenzio\n",
                 "targetAbi": "10.11.0.0",

@@ -316,7 +316,7 @@
     // Il colore e' solo un dettaglio estetico: se l'immagine tarda (primo avvio, il server deve ancora
     // ridimensionarla) non si aspetta oltre 3 secondi.
     function getDominantColor(imgUrl) {
-        return Promise.race([getDominantColorRaw(imgUrl), sleep(3000).then(() => 'rgb(35,35,40)')]);
+        return Promise.race([getDominantColorRaw(imgUrl), sleep(1500).then(() => 'rgb(35,35,40)')]);
     }
 
     async function enrichWithVisuals(items) {
@@ -1256,21 +1256,88 @@
 
     let debounceTimer = null;
     function schedule(delay) {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(ensure, delay);
+        if (debounceTimer) return;
+        debounceTimer = setTimeout(() => { debounceTimer = null; ensure(); }, delay);
     }
 
     // Home che si (ri)costruisce: osserva il DOM, ma agisce solo se manca la sezione.
+    // Titoli pronti da mostrare SUBITO, senza aspettare nulla: quelli di oggi, altrimenti quelli di ieri
+    // o di riserva (in quel caso parte anche l'aggiornamento in background).
+    function peekItems() {
+        if (memItems && memItems.length && memDay === todayKey()) return memItems;
+        const fresh = getCache();
+        if (fresh && fresh.length) { memItems = fresh; memDay = todayKey(); return fresh; }
+        const old = memItems || getStaleCache();
+        if (old && old.length) {
+            shownStale = true;
+            loadData().catch(() => {});
+            return old;
+        }
+        return null;
+    }
+
+    // Se i titoli ci sono e la home ha la riga giusta, la sezione compare nello stesso istante,
+    // sincrona: non passa da timer, da attese o da una ricarica della pagina.
+    function owlfinQuickInject() {
+        const home = getActiveHome();
+        if (!home) return;
+        if (!home._owlSeen) home._owlSeen = Date.now();
+
+        const existing = home.querySelector('.owlhub-trending-section');
+        const isError = !!existing && existing.classList.contains('owlhub-trending-error');
+        if (existing && !isError) { fixPosition(home); return; }
+
+        const items = peekItems();
+        if (!items || !items.length) return;
+
+        // Senza la riga giusta si aspetta al massimo 4 s, poi si ripiega (e la si sposta quando arriva).
+        if (!findAnchorSection(home)) {
+            const left = 4000 - (Date.now() - home._owlSeen);
+            if (left > 0) { setTimeout(owlfinQuickInject, left + 50); return; }
+        }
+        if (isError) existing.remove();
+        injectSection(items);
+        note('sezione inserita subito');
+    }
+
+    // Una sola volta per fotogramma, ma senza mai rimandare: non puo' andare in "fame" come il debounce.
+    let qiPending = false;
+    function qiSoon() {
+        if (qiPending) return;
+        qiPending = true;
+        requestAnimationFrame(() => {
+            qiPending = false;
+            try { owlfinQuickInject(); } catch (e) { dbg.errors++; note('ERRORE ' + (e && e.message ? e.message : e)); }
+        });
+    }
+
     const observer = new MutationObserver(() => {
         const home = getActiveHome();
-        if (home) schedule(home.querySelector('.owlhub-trending-section') ? 700 : 250);
+        if (!home) return;
+        qiSoon();
+        schedule(home.querySelector('.owlhub-trending-section') ? 700 : 250);
     });
     observer.observe(document.body, { childList: true, subtree: true });
+
+    // Caricamento dei dati anticipato: parte appena il client Jellyfin e' pronto, anche se la home
+    // non e' ancora comparsa, cosi' quando arrivano le righe i titoli sono gia' pronti.
+    (function owlfinWarmUp() {
+        let n = 0;
+        const tick = () => {
+            if (memItems && memItems.length && memDay === todayKey()) { qiSoon(); return; }
+            if (clientReady() && tmdbKey()) {
+                loadData().then(() => qiSoon()).catch(() => {});
+            }
+            if (++n < 400) setTimeout(tick, n < 20 ? 300 : 1000);
+        };
+        tick();
+    })();
 
     // Eventi di navigazione / ritorno in foreground: piu' tentativi ravvicinati,
     // perche' la home carica le sue righe in modo asincrono.
     function burst() {
-        [100, 600, 1500, 3500].forEach((ms) => setTimeout(ensure, ms));
+        qiSoon();
+        [100, 600, 1500, 3500].forEach((ms) => setTimeout(() => { qiSoon(); ensure(); }, ms));
     }
     document.addEventListener('viewshow', burst);
     window.addEventListener('pageshow', burst);
