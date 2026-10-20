@@ -1101,6 +1101,7 @@
     // INIT
     // =====================================================
 
+    const OWLFIN_TREND_VER = '1.11.12';
     let memItems = null;
     let memDay = '';
     let inflight = null;
@@ -1238,6 +1239,7 @@
         const isError = !!existing && existing.classList.contains('owlhub-trending-error');
         if (existing && !isError) {
             fixPosition(home);
+            recordOk();
             if (shownStale) loadData();
             return;
         }
@@ -1278,6 +1280,23 @@
 
     // Se i titoli ci sono e la home ha la riga giusta, la sezione compare nello stesso istante,
     // sincrona: non passa da timer, da attese o da una ricarica della pagina.
+    let okLogged = false;
+    function recordOk() {
+        if (okLogged) return;
+        okLogged = true;
+        try {
+            localStorage.setItem('owlfin_trending_ok', JSON.stringify({
+                at: Date.now(), secs: Math.round((Date.now() - dbg.t0) / 100) / 10, v: OWLFIN_TREND_VER
+            }));
+        } catch (e) { /* nessun problema */ }
+    }
+    function lastOkText() {
+        try {
+            const d = JSON.parse(localStorage.getItem('owlfin_trending_ok') || 'null');
+            return d ? (d.secs + ' s dopo l\'avvio (v' + d.v + ')') : '-';
+        } catch (e) { return '-'; }
+    }
+
     function owlfinQuickInject() {
         const home = getActiveHome();
         if (!home) return;
@@ -1285,7 +1304,7 @@
 
         const existing = home.querySelector('.owlhub-trending-section');
         const isError = !!existing && existing.classList.contains('owlhub-trending-error');
-        if (existing && !isError) { fixPosition(home); return; }
+        if (existing && !isError) { fixPosition(home); recordOk(); return; }
 
         const items = peekItems();
         if (!items || !items.length) return;
@@ -1317,7 +1336,7 @@
         qiSoon();
         schedule(home.querySelector('.owlhub-trending-section') ? 700 : 250);
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
 
     // Caricamento dei dati anticipato: parte appena il client Jellyfin e' pronto, anche se la home
     // non e' ancora comparsa, cosi' quando arrivano le righe i titoli sono gia' pronti.
@@ -1350,6 +1369,36 @@
     // Rete di sicurezza: se qualcosa sfugge, entro pochi secondi ricompare.
     setInterval(() => { if (!document.hidden) ensure(); }, 3000);
 
+    let fastUntil = Date.now() + 60000;
+    let homeSince = 0;
+    function onRoute() {
+        if (onHomeRoute()) {
+            if (!homeSince) homeSince = Date.now();
+            fastUntil = Math.max(fastUntil, Date.now() + 20000);
+        } else {
+            homeSince = 0;
+        }
+        burst();
+    }
+    setInterval(() => { if (!document.hidden && Date.now() < fastUntil) qiSoon(); }, 150);
+    ['pushState', 'replaceState'].forEach((fn) => {
+        try {
+            const orig = history[fn];
+            if (typeof orig !== 'function') return;
+            history[fn] = function () {
+                const r = orig.apply(this, arguments);
+                setTimeout(onRoute, 0);
+                return r;
+            };
+        } catch (e) { /* nessun problema */ }
+    });
+    window.addEventListener('hashchange', onRoute);
+    window.addEventListener('popstate', onRoute);
+    window.addEventListener('load', onRoute);
+    document.addEventListener('DOMContentLoaded', onRoute);
+    document.addEventListener('readystatechange', onRoute);
+    if (location.hash === '' || location.hash === '#' || /^#!?\/home/i.test(location.hash)) homeSince = Date.now();
+
     function onHomeRoute() {
         const h = location.hash.toLowerCase();
         return h === '' || h === '#' || h.indexOf('#/home') === 0 || h.indexOf('#!/home') === 0;
@@ -1358,7 +1407,7 @@
     function owlfinDebugChip() {
         let chip = document.getElementById('owlfin-trending-debug');
         const missing = !document.querySelector('.owlhub-trending-section');
-        if (dbg.hidden || !missing || Date.now() - dbg.t0 < 7000 || !onHomeRoute() || document.hidden) {
+        if (dbg.hidden || !missing || !homeSince || Date.now() - homeSince < 8000 || !onHomeRoute() || document.hidden) {
             if (chip) chip.remove();
             return;
         }
@@ -1376,8 +1425,9 @@
         const rows = Array.from(document.querySelectorAll('.homeSectionsContainer .verticalSection .sectionTitle'))
             .map((e) => e.textContent.trim()).slice(0, 8).join(' / ');
         chip.textContent = [
-            'Owlfin Tendenza - sezione non visibile (tocca per chiudere)',
-            'hash: ' + location.hash,
+            'Owlfin Tendenza v' + OWLFIN_TREND_VER + ' - sezione non visibile (tocca per chiudere)',
+            'hash: ' + location.hash + ', pagina: ' + document.readyState + ', ApiClient: ' + (window.ApiClient ? 'si' : 'NO'),
+            'sulla home da ' + Math.round((Date.now() - homeSince) / 1000) + ' s, ultima volta riuscita: ' + lastOkText(),
             'contenitori home: ' + containers.length + ', visibili: ' + visible,
             'righe: ' + (rows || '(nessuna)'),
             'client: ' + (clientReady() ? 'pronto' : 'NON pronto') + ', chiave TMDB: ' + (tmdbKey() ? 'si' : 'NO'),

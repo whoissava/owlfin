@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.8.12.0",
+                "changelog": "2.8.12.0: Di Tendenza Ora: controllo ogni 150 ms nel primo minuto e dopo ogni ritorno alla home (il plugin parte prima dell'app), agganciato anche ai cambi pagina via pushState, nessun errore se il body non esiste ancora; il riquadro diagnostico mostra la versione, compare solo dopo 8 secondi sulla home e indica quando e riuscita l'ultima volta\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.8.12.0.zip",
+                "checksum": "e75193069755505e89d482862069df18",
+                "timestamp": "2026-10-20T12:40:09Z"
+            },
+            {
                 "version": "2.8.11.0",
                 "changelog": "2.8.11.0: Di Tendenza Ora: i titoli si caricano subito all'avvio (senza aspettare la home) e la sezione compare nell'istante in cui la home ha la riga giusta, anche se la home viene ridisegnata; niente ricarica della pagina\n",
                 "targetAbi": "12.0.0.0",
