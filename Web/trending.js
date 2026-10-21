@@ -568,7 +568,7 @@
 
         const card = document.createElement('div');
         card.className = 'owlhub-trending-card';
-        card.setAttribute('data-id', item.Id);
+        card.setAttribute('data-owlfin-id', item.Id);
         card.style.setProperty('--owlhub-color', item._color || 'rgb(35,35,40)');
 
         if (item._bgUrl) {
@@ -948,6 +948,48 @@
                 border-radius: 4px;
             }
 
+            .owlfin-trend-wrap {
+                margin: 1.6em 0 .6em 0;
+            }
+
+            .owlfin-trend-title {
+                margin: 0 0 .6em 0;
+                padding: 0 3.3%;
+                font-size: 1.4em;
+                font-weight: 500;
+            }
+
+            .owlfin-trend-wrap .owlhub-trending-row {
+                padding: 0 3.3% .3em 3.3%;
+                scrollbar-width: none;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .owlfin-trend-wrap .owlhub-trending-row::-webkit-scrollbar {
+                display: none;
+            }
+
+            .owlfin-trend-skel {
+                position: relative;
+                flex: 0 0 auto;
+                width: 300px;
+                height: 168px;
+                border-radius: 10px;
+                background: rgba(255,255,255,.07);
+                color: rgba(255,255,255,.7);
+                font-size: .9em;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            @media (max-width: 420px) {
+                .owlfin-trend-skel {
+                    width: 78vw;
+                    height: 43.7vw;
+                }
+            }
+
             .owlhub-trailer-iframe {
                 position: absolute;
                 inset: 0;
@@ -991,7 +1033,7 @@
             const c = all[i];
             if (c.closest('.hide, [hidden]')) continue;
             if (c.getClientRects().length > 0) return c;
-            if (!fallback) fallback = c;
+            fallback = c;                                   // il giro e' al contrario: resta il primo
         }
         return fallback;
     }
@@ -1003,23 +1045,23 @@
         return rows[1] || rows[0] || null;
     }
 
-    // Sezione costruita da zero: non dipende da nessuna riga esistente della home.
+    // Sezione con classi SOLO nostre (come righe studi e barra generi): per Jellyfin e' un blocco opaco.
     function buildStandaloneSection(items) {
         const sec = document.createElement('div');
-        sec.className = 'verticalSection owlhub-trending-section';
+        sec.className = 'owlfin-trend-wrap owlhub-trending-section';
 
-        const titleBox = document.createElement('div');
-        titleBox.className = 'sectionTitleContainer sectionTitleContainer-cards padded-left';
         const title = document.createElement('h2');
-        title.className = 'sectionTitle sectionTitle-cards';
+        title.className = 'owlfin-trend-title';
         title.textContent = SECTION_TITLE;
-        titleBox.appendChild(title);
 
         const row = document.createElement('div');
-        row.className = 'itemsContainer scrollSlider padded-left padded-right owlhub-trending-row';
+        row.className = 'owlhub-trending-row';
+        // come studi e generi: il tocco orizzontale resta alla riga e non arriva alla pagina
+        row.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+        row.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
         items.forEach((item, index) => row.appendChild(buildCard(item, index + 1)));
 
-        sec.appendChild(titleBox);
+        sec.appendChild(title);
         sec.appendChild(row);
         return sec;
     }
@@ -1109,7 +1151,7 @@
     // INIT
     // =====================================================
 
-    const OWLFIN_TREND_VER = '1.11.15';
+    const OWLFIN_TREND_VER = '1.11.16';
     let memItems = null;
     let memDay = '';
     let inflight = null;
@@ -1280,19 +1322,20 @@
         if (!row) return;
         row.innerHTML = '';
         const msg = document.createElement('div');
-        msg.className = 'owlhub-trending-msg';
-        msg.style.cssText = 'padding:14px 16px;border-radius:10px;background:rgba(255,255,255,.08);' +
-            'font-size:.9em;line-height:1.4;max-width:90vw;opacity:.85;';
-        msg.textContent = text;
         if (state === 'error') {
-            msg.style.cursor = 'pointer';
+            msg.className = 'owlhub-trending-msg';
+            msg.style.cssText = 'padding:14px 16px;border-radius:10px;background:rgba(255,255,255,.08);' +
+                'font-size:.9em;line-height:1.4;max-width:90vw;opacity:.85;cursor:pointer;';
             msg.addEventListener('click', () => {
                 failedAt = 0; failCount = 0;
                 sec._owlT0 = Date.now();
                 showShellState(sec, 'loading', t.loading);
                 restart();
             });
+        } else {
+            msg.className = 'owlfin-trend-skel';
         }
+        msg.textContent = text;
         row.appendChild(msg);
     }
 
@@ -1307,22 +1350,14 @@
     // aggiunti di recente" se esiste, altrimenti costruita da zero).
     function applyItems(sec, items) {
         const home = getActiveHome();
-        const anchor = home ? findAnchorSection(home) : null;
-        let built = null;
-        try {
-            built = anchor && anchor !== sec ? buildSectionFromAnchor(anchor, items) : null;
-        } catch (e) {
-            built = null;
-        }
-        const fromAnchor = !!built;
-        if (!built) built = buildStandaloneSection(items);
+        const built = buildStandaloneSection(items);
         built.setAttribute('data-owlfin-state', 'ready');
-        built._owlStandalone = !fromAnchor;
+        built._owlStandalone = false;
         built._owlItems = items;
         sec._owlRemoved = true;
         sec.replaceWith(built);
         if (home) fixPosition(home);
-        owlLog('sezione pronta: ' + items.length + ' titoli' + (fromAnchor ? '' : ' (costruita da zero)') + ', ' + neighbours(built));
+        owlLog('sezione pronta: ' + items.length + ' titoli, ' + neighbours(built));
     }
 
     function fillSection(sec) {

@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.11.16.0",
+                "changelog": "1.11.16.0: Di Tendenza Ora: la sezione usa solo classi proprie come righe studi e barra generi (prima usava verticalSection e itemsContainer di Jellyfin, che li passa in rassegna e ridisegna la home cancellando la sezione), segnaposto della stessa misura delle carte mentre carica\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.11.16.0.zip",
+                "checksum": "6262fc2216f3786bcfbc154f9168214d",
+                "timestamp": "2026-10-21T06:51:11Z"
+            },
+            {
                 "version": "1.11.15.0",
                 "changelog": "1.11.15.0: Di Tendenza Ora: se la sezione sparisce dalla home (ridisegnata o tolta da altro codice) viene rimessa subito, con un freno per non litigare all'infinito; registro eventi che resta anche dopo la ricarica della pagina e si apre toccando la targhetta (chi ha tolto la sezione, dove e stata messa)\n",
                 "targetAbi": "10.11.0.0",
