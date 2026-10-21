@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.8.15.0",
+                "changelog": "2.8.15.0: Di Tendenza Ora: se la sezione sparisce dalla home (ridisegnata o tolta da altro codice) viene rimessa subito, con un freno per non litigare all'infinito; registro eventi che resta anche dopo la ricarica della pagina e si apre toccando la targhetta (chi ha tolto la sezione, dove e stata messa)\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.8.15.0.zip",
+                "checksum": "430906910eef0a8cd98c68a145d32244",
+                "timestamp": "2026-10-21T05:53:44Z"
+            },
+            {
                 "version": "2.8.14.0",
                 "changelog": "2.8.14.0: Di Tendenza Ora: la home si riconosce dal contenuto e non dall'hash (nell'app l'hash restava #/home anche su un film), abbinamento con la libreria molto piu' leggero (solo id e provider, poi i dettagli dei soli titoli in tendenza) e per tipo film/serie, targhetta temporanea con versione e stato nei primi secondi\n",
                 "targetAbi": "12.0.0.0",

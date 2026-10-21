@@ -1109,7 +1109,7 @@
     // INIT
     // =====================================================
 
-    const OWLFIN_TREND_VER = '1.11.14';
+    const OWLFIN_TREND_VER = '1.11.15';
     let memItems = null;
     let memDay = '';
     let inflight = null;
@@ -1232,6 +1232,37 @@
     // finche' la home esiste. La sezione compare SUBITO come "guscio" (Caricamento...) senza aspettare
     // i dati e si riempie appena arrivano: niente attese sui dati, niente osservatori.
 
+    // =====================================================
+    // REGISTRO EVENTI (si conserva anche dopo la ricarica della pagina)
+    // =====================================================
+    const LOG_KEY = 'owlfin_trending_log_v1';
+    const logBuf = [];
+    let prevLog = [];
+    try {
+        prevLog = JSON.parse(localStorage.getItem(LOG_KEY) || '[]').slice(-25);
+    } catch (e) { prevLog = []; }
+
+    function owlLog(msg) {
+        logBuf.push({ t: Date.now(), m: msg });
+        if (logBuf.length > 40) logBuf.shift();
+        try { localStorage.setItem(LOG_KEY, JSON.stringify(logBuf)); } catch (e) { /* nessun problema */ }
+    }
+    owlLog('script avviato v' + OWLFIN_TREND_VER + ' ' + location.pathname + location.hash);
+
+    function neighbours(sec) {
+        const title = (n) => {
+            while (n && !n.classList.contains('verticalSection')) n = n.previousElementSibling;
+            const e = n && n.querySelector('.sectionTitle');
+            return e ? e.textContent.trim() : '?';
+        };
+        const nextTitle = (n) => {
+            while (n && !n.classList.contains('verticalSection')) n = n.nextElementSibling;
+            const e = n && n.querySelector('.sectionTitle');
+            return n ? (e ? e.textContent.trim() : '(riga senza titolo)') : '(fine)';
+        };
+        return 'dopo "' + title(sec.previousElementSibling) + '", prima di "' + nextTitle(sec.nextElementSibling) + '"';
+    }
+
     let navGen = 0;
     let navAt = Date.now();
     let navState = null;
@@ -1288,8 +1319,10 @@
         built.setAttribute('data-owlfin-state', 'ready');
         built._owlStandalone = !fromAnchor;
         built._owlItems = items;
+        sec._owlRemoved = true;
         sec.replaceWith(built);
         if (home) fixPosition(home);
+        owlLog('sezione pronta: ' + items.length + ' titoli' + (fromAnchor ? '' : ' (costruita da zero)') + ', ' + neighbours(built));
     }
 
     function fillSection(sec) {
@@ -1346,6 +1379,7 @@
             if (!sec && (findAnchorSection(home) || Date.now() - home._owlSeen > 3000)) {
                 sec = buildShell();
                 placeSection(home, sec);
+                owlLog('guscio inserito, ' + neighbours(sec));
             }
             if (sec) fixPosition(home);
 
@@ -1378,6 +1412,7 @@
     }
 
     function restart() {
+        owlLog('restart');
         clearTimeout(loopTimer);
         loopTimer = null;
         navState = { gen: navGen, tries: 0 };
@@ -1387,7 +1422,8 @@
     function onNavigate() {
         navGen++;
         navAt = Date.now();
-        trendingSections().forEach((n) => n.remove());      // come removeUI() di studi e generi
+        owlLog('navigazione (' + location.pathname + location.hash + ')');
+        trendingSections().forEach((n) => { n._owlRemoved = true; n.remove(); });      // come removeUI() di studi e generi
         navState = { gen: navGen, tries: 0 };
         clearTimeout(loopTimer);
         loopTimer = null;
@@ -1420,6 +1456,38 @@
         } catch (e) { /* nessun problema */ }
     });
 
+    // Registra chi toglie la sezione: se non siamo stati noi, e' un altro codice (utile per capire).
+    let removedByOthers = 0;
+    new MutationObserver((muts) => {
+        for (const m of muts) {
+            m.removedNodes.forEach((n) => {
+                if (n.nodeType !== 1) return;
+                const hit = n.classList && n.classList.contains('owlhub-trending-section') ? n
+                    : (n.querySelector ? n.querySelector('.owlhub-trending-section') : null);
+                if (hit && !hit._owlRemoved) {
+                    removedByOthers++;
+                    owlLog('SEZIONE RIMOSSA da altro codice (nodo tolto: ' + (n.className || n.nodeName) + ', padre: ' + ((m.target && m.target.className) || (m.target && m.target.nodeName)) + ')');
+                }
+            });
+        }
+    }).observe(document.body || document.documentElement, { childList: true, subtree: true });
+
+    let guardLast = 0;
+    let guardCount = 0;
+    const owlfinGuard = new MutationObserver(() => {
+        if (document.hidden) return;
+        const home = visibleHome();
+        if (!home || home.querySelector('.owlhub-trending-section')) return;
+        const now = Date.now();
+        if (now - guardLast < 300) return;
+        guardLast = now;
+        if (++guardCount > 40) return;                      // freno: oltre, ci pensa il controllo ogni 1,5 s
+        owlLog('guardia: home senza sezione, restart');
+        restart();
+    });
+    owlfinGuard.observe(document.body || document.documentElement, { childList: true, subtree: true });
+    setInterval(() => { guardCount = 0; }, 60000);
+
     // Rete di sicurezza: se la home e' presente ma la sezione sparisce (home ridisegnata), si riparte.
     setInterval(() => {
         if (document.hidden) return;
@@ -1439,8 +1507,44 @@
         return h && h.getClientRects().length > 0 && !h.closest('.hide, [hidden]') ? h : null;
     }
 
-    // Targhetta piccola e temporanea (primi 8 s su ogni home, 3 s dopo che la sezione e' pronta):
-    // serve a capire a colpo d'occhio cosa sta succedendo senza console.
+    // Targhetta piccola e temporanea (primi 20 s su ogni home): versione e stato a colpo d'occhio.
+    // Toccandola si apre il registro degli eventi (anche quello prima della ricarica della pagina).
+    function logPanelText() {
+        const t0 = dbg.t0;
+        const fmt = (e, base) => '+' + (Math.round((e.t - base) / 100) / 10) + 's ' + e.m;
+        const home = visibleHome();
+        const secs = home ? home.querySelectorAll('.owlhub-trending-section').length : 0;
+        const containers = document.querySelectorAll('.homeSectionsContainer').length;
+        const lines = [
+            'Owlfin Tendenza v' + OWLFIN_TREND_VER + ' - registro (tocca per chiudere)',
+            'url: ' + location.pathname + location.search + location.hash,
+            'contenitori home: ' + containers + ', visibile: ' + (home ? 'si' : 'no') + ', sezioni nella home: ' + secs,
+            'client: ' + (clientReady() ? 'pronto' : 'NON pronto') + ', chiave TMDB: ' + (tmdbKey() ? 'si' : 'NO') +
+                ', dati: ' + (memItems ? memItems.length : 0) + (shownStale ? ' (di riserva)' : '') + ', rimossa da altri: ' + removedByOthers,
+            'motivo: ' + (lastReason || '-'),
+            '--- questa pagina ---'
+        ].concat(logBuf.map((e) => fmt(e, t0)));
+        if (prevLog.length) {
+            lines.push('--- pagina precedente ---');
+            const base = prevLog[0].t;
+            prevLog.forEach((e) => lines.push(fmt(e, base)));
+        }
+        return lines.join('\n');
+    }
+
+    function toggleLogPanel() {
+        const old = document.getElementById('owlfin-trending-log');
+        if (old) { old.remove(); return; }
+        const panel = document.createElement('div');
+        panel.id = 'owlfin-trending-log';
+        panel.style.cssText = 'position:fixed;left:8px;right:8px;bottom:100px;z-index:99999;max-height:55vh;overflow:auto;' +
+            'background:rgba(0,0,0,.9);color:#9fe3a0;font:10px/1.35 ui-monospace,Menlo,monospace;padding:8px 10px;' +
+            'border-radius:8px;white-space:pre-wrap;word-break:break-word;';
+        panel.textContent = logPanelText();
+        panel.addEventListener('click', () => panel.remove());
+        document.body.appendChild(panel);
+    }
+
     function owlfinBadge() {
         let badge = document.getElementById('owlfin-trending-badge');
         const home = visibleHome();
@@ -1449,11 +1553,10 @@
             const seen = home._owlSeen || (home._owlSeen = Date.now());
             const sec = home.querySelector('.owlhub-trending-section');
             const state = sec ? sec.getAttribute('data-owlfin-state') : 'assente';
-            if (state === 'ready' && !home._owlReadyAt) home._owlReadyAt = Date.now();
             const age = Date.now() - seen;
-            const readyAge = home._owlReadyAt ? Date.now() - home._owlReadyAt : 0;
-            if (age < 8000 && readyAge < 3000) {
-                text = 'Tendenza v' + OWLFIN_TREND_VER + ' · ' + state + ' · ' + Math.round(age / 100) / 10 + ' s';
+            if (age < 20000 || state !== 'ready') {
+                text = 'Tendenza v' + OWLFIN_TREND_VER + ' · ' + state + ' · ' + Math.round(age / 100) / 10 + ' s' +
+                    (removedByOthers ? ' · rimossa x' + removedByOthers : '');
             }
         }
         if (!text) {
@@ -1463,9 +1566,10 @@
         if (!badge) {
             badge = document.createElement('div');
             badge.id = 'owlfin-trending-badge';
-            badge.style.cssText = 'position:fixed;left:8px;bottom:76px;z-index:99998;pointer-events:none;' +
-                'background:rgba(0,0,0,.6);color:#9fe3a0;font:10px/1.2 ui-monospace,Menlo,monospace;' +
-                'padding:2px 6px;border-radius:6px;';
+            badge.style.cssText = 'position:fixed;left:8px;bottom:76px;z-index:99998;' +
+                'background:rgba(0,0,0,.65);color:#9fe3a0;font:11px/1.2 ui-monospace,Menlo,monospace;' +
+                'padding:4px 8px;border-radius:6px;';
+            badge.addEventListener('click', (ev) => { ev.stopPropagation(); toggleLogPanel(); });
             document.body.appendChild(badge);
         }
         badge.textContent = text;
@@ -1502,7 +1606,9 @@
             'dati: ' + (memItems ? memItems.length : 0) + (shownStale ? ' (di riserva)' : '') + ', caricamento: ' + (inflight ? 'si' : 'no') + ', errori: ' + dbg.errors,
             'motivo: ' + (lastReason || '-'),
             'eventi:',
-            dbg.events.slice(-8).join('\n')
+            dbg.events.slice(-8).join('\n'),
+            'registro:',
+            logBuf.slice(-8).map((e) => '+' + (Math.round((e.t - dbg.t0) / 100) / 10) + 's ' + e.m).join('\n')
         ].join('\n');
     }
     setInterval(owlfinDebugChip, 1500);
