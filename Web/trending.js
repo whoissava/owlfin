@@ -167,8 +167,8 @@
             throw new Error('Errore nella richiesta a TMDB');
         }
 
-        const movies = (await moviesRes.json()).results || [];
-        const tv = (await tvRes.json()).results || [];
+        const movies = ((await moviesRes.json()).results || []).map((r) => Object.assign({}, r, { _t: 'movie' }));
+        const tv = ((await tvRes.json()).results || []).map((r) => Object.assign({}, r, { _t: 'tv' }));
 
         return [...movies, ...tv].sort(
             (a, b) => (b.popularity || 0) - (a.popularity || 0)
@@ -235,36 +235,44 @@
         const apiClient = getApiClient();
         const userId = apiClient.getCurrentUserId();
 
-        const result = await apiClient.getItems(userId, {
+        // 1) elenco leggero: solo id e provider, senza immagini ne' dati utente
+        const light = await apiClient.getItems(userId, {
             IncludeItemTypes: 'Movie,Series',
             Recursive: true,
-            Fields: 'ProviderIds,ProductionYear,Genres,OfficialRating,Studios,BackdropImageTags',
-            EnableImages: true,
-            Limit: 10000
+            Fields: 'ProviderIds',
+            EnableImages: false,
+            EnableUserData: false,
+            EnableTotalRecordCount: false,
+            ImageTypeLimit: 0
         });
 
-        const libraryByTmdbId = {};
-
-        (result.Items || []).forEach((item) => {
-            const tmdbId = item.ProviderIds &&
-                (item.ProviderIds.Tmdb || item.ProviderIds.tmdb);
-
+        const byKey = {};
+        (light.Items || []).forEach((item) => {
+            const tmdbId = item.ProviderIds && (item.ProviderIds.Tmdb || item.ProviderIds.tmdb);
             if (tmdbId) {
-                libraryByTmdbId[String(tmdbId)] = item;
+                byKey[(item.Type === 'Series' ? 'tv' : 'movie') + ':' + tmdbId] = item.Id;
             }
         });
 
-        const matched = [];
-
-        trendingList.forEach((t) => {
-            const local = libraryByTmdbId[String(t.id)];
-
-            if (local && !matched.find(m => m.Id === local.Id)) {
-                matched.push(local);
-            }
+        const ids = [];
+        trendingList.forEach((tr) => {
+            const id = byKey[(tr._t === 'tv' ? 'tv' : 'movie') + ':' + tr.id];
+            if (id && ids.indexOf(id) === -1) ids.push(id);
         });
 
-        return matched.slice(0, MAX_ITEMS);
+        const top = ids.slice(0, MAX_ITEMS);
+        if (!top.length) return [];
+
+        // 2) dettagli completi solo dei pochi titoli in tendenza
+        const full = await apiClient.getItems(userId, {
+            Ids: top.join(','),
+            Fields: 'ProviderIds,ProductionYear,Genres,OfficialRating,Studios,BackdropImageTags',
+            EnableImages: true
+        });
+
+        const byId = {};
+        (full.Items || []).forEach((it) => { byId[it.Id] = it; });
+        return top.map((id) => byId[id]).filter(Boolean);
     }
 
 
@@ -1101,7 +1109,7 @@
     // INIT
     // =====================================================
 
-    const OWLFIN_TREND_VER = '1.11.13';
+    const OWLFIN_TREND_VER = '1.11.14';
     let memItems = null;
     let memDay = '';
     let inflight = null;
@@ -1228,7 +1236,7 @@
     let navAt = Date.now();
     let navState = null;
     let loopTimer = null;
-    let lastHash = location.hash;
+    let lastHash = location.href;
     const SHELL_FAIL_MS = 12000;
 
     function trendingSections() {
@@ -1323,8 +1331,6 @@
 
     function step(st) {
         if (st.gen !== navGen) return;
-        if (!onHomeRoute()) return;
-
         const home = getActiveHome();
         let sec = home ? home.querySelector('.owlhub-trending-section') : null;
         let done = false;
@@ -1391,8 +1397,8 @@
     function ensure() { restart(); }
 
     function routeChanged() {
-        if (location.hash !== lastHash) {
-            lastHash = location.hash;
+        if (location.href !== lastHash) {
+            lastHash = location.href;
             onNavigate();
         }
     }
@@ -1416,9 +1422,9 @@
 
     // Rete di sicurezza: se la home e' presente ma la sezione sparisce (home ridisegnata), si riparte.
     setInterval(() => {
-        if (document.hidden || !onHomeRoute()) return;
+        if (document.hidden) return;
         const home = getActiveHome();
-        if (!home) { if (!loopTimer) restart(); return; }
+        if (!home) return;
         const sec = home.querySelector('.owlhub-trending-section');
         if (!sec) restart();
     }, 1500);
@@ -1428,10 +1434,49 @@
         return h === '' || h === '#' || h.indexOf('#/home') === 0 || h.indexOf('#!/home') === 0;
     }
 
+    function visibleHome() {
+        const h = getActiveHome();
+        return h && h.getClientRects().length > 0 && !h.closest('.hide, [hidden]') ? h : null;
+    }
+
+    // Targhetta piccola e temporanea (primi 8 s su ogni home, 3 s dopo che la sezione e' pronta):
+    // serve a capire a colpo d'occhio cosa sta succedendo senza console.
+    function owlfinBadge() {
+        let badge = document.getElementById('owlfin-trending-badge');
+        const home = visibleHome();
+        let text = '';
+        if (home && !document.hidden && !document.getElementById('owlfin-trending-debug')) {
+            const seen = home._owlSeen || (home._owlSeen = Date.now());
+            const sec = home.querySelector('.owlhub-trending-section');
+            const state = sec ? sec.getAttribute('data-owlfin-state') : 'assente';
+            if (state === 'ready' && !home._owlReadyAt) home._owlReadyAt = Date.now();
+            const age = Date.now() - seen;
+            const readyAge = home._owlReadyAt ? Date.now() - home._owlReadyAt : 0;
+            if (age < 8000 && readyAge < 3000) {
+                text = 'Tendenza v' + OWLFIN_TREND_VER + ' · ' + state + ' · ' + Math.round(age / 100) / 10 + ' s';
+            }
+        }
+        if (!text) {
+            if (badge) badge.remove();
+            return;
+        }
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.id = 'owlfin-trending-badge';
+            badge.style.cssText = 'position:fixed;left:8px;bottom:76px;z-index:99998;pointer-events:none;' +
+                'background:rgba(0,0,0,.6);color:#9fe3a0;font:10px/1.2 ui-monospace,Menlo,monospace;' +
+                'padding:2px 6px;border-radius:6px;';
+            document.body.appendChild(badge);
+        }
+        badge.textContent = text;
+    }
+    setInterval(owlfinBadge, 500);
+
     function owlfinDebugChip() {
         let chip = document.getElementById('owlfin-trending-debug');
         const missing = !document.querySelector('.owlhub-trending-section[data-owlfin-state="ready"]');
-        if (dbg.hidden || !missing || Date.now() - navAt < 9000 || !onHomeRoute() || document.hidden) {
+        const vh = visibleHome();
+        if (dbg.hidden || !missing || !vh || Date.now() - (vh._owlSeen || Date.now()) < 9000 || document.hidden) {
             if (chip) chip.remove();
             return;
         }
@@ -1450,7 +1495,7 @@
             .map((e) => e.textContent.trim()).slice(0, 8).join(' / ');
         chip.textContent = [
             'Owlfin Tendenza v' + OWLFIN_TREND_VER + ' - sezione non visibile (tocca per chiudere)',
-            'hash: ' + location.hash,
+            'url: ' + location.pathname + location.search + location.hash,
             'contenitori home: ' + containers.length + ', visibili: ' + visible,
             'righe: ' + (rows || '(nessuna)'),
             'client: ' + (clientReady() ? 'pronto' : 'NON pronto') + ', chiave TMDB: ' + (tmdbKey() ? 'si' : 'NO'),

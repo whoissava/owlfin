@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.8.14.0",
+                "changelog": "2.8.14.0: Di Tendenza Ora: la home si riconosce dal contenuto e non dall'hash (nell'app l'hash restava #/home anche su un film), abbinamento con la libreria molto piu' leggero (solo id e provider, poi i dettagli dei soli titoli in tendenza) e per tipo film/serie, targhetta temporanea con versione e stato nei primi secondi\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.8.14.0.zip",
+                "checksum": "4d0aec0fcce474a1df4121a6b2e483aa",
+                "timestamp": "2026-10-21T05:37:48Z"
+            },
+            {
                 "version": "2.8.13.0",
                 "changelog": "2.8.13.0: Di Tendenza Ora: ripartito dal codice di ieri con la stessa logica di persistenza di studi e generi: a ogni navigazione la sezione compare subito come guscio (Caricamento...) appena c'e la riga giusta e si riempie quando arrivano i titoli; i titoli si caricano gia' prima della home; niente osservatori ne' ricariche della pagina\n",
                 "targetAbi": "12.0.0.0",
