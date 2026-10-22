@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.8.19.0",
+                "changelog": "2.8.19.0: Di Tendenza Ora: tieni premuto piu' robusto (eventi touch oltre ai pointer, callout/menu contestuale/trascinamento immagine disattivati sulla carta) e registro del trailer consultabile dalla targhetta\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.8.19.0.zip",
+                "checksum": "0a0e83a58a9c806c6a1130c5e69d45f4",
+                "timestamp": "2026-10-22T11:08:37Z"
+            },
+            {
                 "version": "2.8.18.0",
                 "changelog": "2.8.18.0: Di Tendenza Ora: ordine visivo corretto, la sezione prende lo stesso order CSS della riga che la precede (nel codice era gia' dopo Prossimo ma sullo schermo finiva in cima); registro e targhetta mostrano la posizione visiva\n",
                 "targetAbi": "12.0.0.0",

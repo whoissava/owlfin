@@ -453,6 +453,7 @@
         }
 
         const key = await getItalianTrailerKey(item);
+        owlLog('trailer di "' + item.Name + '": ' + (key ? 'chiave trovata' : 'NESSUN trailer italiano (TMDB/cache)'));
         if (!key) return;
 
         // Chiude eventuali altri trailer ancora aperti.
@@ -488,6 +489,7 @@
         iframe.setAttribute('tabindex', '-1');
 
         card.appendChild(iframe);
+        owlLog('iframe del trailer aggiunto');
 
         /*
          * Overlay trasparente SOPRA l'iframe (z-index più alto).
@@ -529,6 +531,7 @@
 
         iframe.addEventListener('load', () => {
 
+            owlLog('iframe del trailer caricato');
             let attempts = 0;
 
             const trySend = () => {
@@ -608,80 +611,73 @@
         // dito è ancora premuto, il trailer parte subito.
         // -----------------------------------------------
 
-        card.addEventListener('pointerdown', (event) => {
-
-            if (event.button !== undefined && event.button !== 0) return;
+        function startPress(x, y, src) {
             if (card.classList.contains('owlhub-trailer-playing')) return;
+            if (pressStartTime && Date.now() - pressStartTime < 700) return;     // gia' avviato dall'altro tipo di evento
 
-            pressStartX = event.clientX;
-            pressStartY = event.clientY;
+            pressStartX = x;
+            pressStartY = y;
             pressStartTime = Date.now();
             longPressTriggered = false;
             movedTooFar = false;
 
             clearTimeout(longPressTimer);
+            lastTrailerAt = Date.now();
+            owlLog('tocco ' + src + ' su "' + item.Name + '"');
 
             longPressTimer = setTimeout(() => {
                 if (pressStartTime && !movedTooFar) {
                     longPressTriggered = true;
+                    owlLog('tieni premuto: parte il trailer di "' + item.Name + '"');
                     playItalianTrailer(item, card);
                 }
             }, LONG_PRESS_MS);
-        });
+        }
 
-
-        // -----------------------------------------------
-        // MOVIMENTO — annulla il long press se è uno scroll.
-        // -----------------------------------------------
-
-        card.addEventListener('pointermove', (event) => {
-
+        function movePress(x, y) {
             if (!pressStartTime) return;
-
-            const dx = event.clientX - pressStartX;
-            const dy = event.clientY - pressStartY;
-
+            const dx = x - pressStartX;
+            const dy = y - pressStartY;
             if ((dx * dx + dy * dy) > MOVE_TOLERANCE_SQ) {
+                if (!movedTooFar && !longPressTriggered) owlLog('tocco spostato: e\' uno scorrimento, nessun trailer');
                 movedTooFar = true;
                 clearTimeout(longPressTimer);
             }
-        });
+        }
 
-
-        // -----------------------------------------------
-        // POINTER UP — ferma solo il timer se non è ancora
-        // scattato; se il trailer è già partito, non fa nulla
-        // (ci pensa il click subito dopo a non navigare).
-        // -----------------------------------------------
-
-        card.addEventListener('pointerup', () => {
-            clearTimeout(longPressTimer);
-            pressStartTime = 0;
-        });
-
-
-        // -----------------------------------------------
-        // POINTER CANCEL
-        // -----------------------------------------------
-
-        card.addEventListener('pointercancel', () => {
-            clearTimeout(longPressTimer);
-            pressStartTime = 0;
-            movedTooFar = false;
-        });
-
-
-        // -----------------------------------------------
-        // POINTER LEAVE — se il dito scivola via, annulla.
-        // -----------------------------------------------
-
-        card.addEventListener('pointerleave', () => {
-            if (pressStartTime) {
-                clearTimeout(longPressTimer);
-                pressStartTime = 0;
-                movedTooFar = false;
+        function endPress(src, cancel) {
+            if (pressStartTime && !longPressTriggered && cancel) {
+                owlLog('tocco interrotto da ' + src + ' dopo ' + (Date.now() - pressStartTime) + ' ms (soglia ' + LONG_PRESS_MS + ')');
             }
+            clearTimeout(longPressTimer);
+            pressStartTime = 0;
+            if (cancel) movedTooFar = false;
+        }
+
+        card.addEventListener('pointerdown', (event) => {
+            if (event.button !== undefined && event.button !== 0) return;
+            startPress(event.clientX, event.clientY, 'pointer');
         });
+        card.addEventListener('pointermove', (event) => movePress(event.clientX, event.clientY));
+        card.addEventListener('pointerup', () => endPress('pointerup', false));
+        card.addEventListener('pointercancel', () => endPress('pointercancel', true));
+        card.addEventListener('pointerleave', () => { if (pressStartTime) endPress('pointerleave', true); });
+
+        // Stessi gesti come eventi touch (iOS): se uno dei due non arriva, arriva l'altro.
+        card.addEventListener('touchstart', (event) => {
+            const t = event.touches && event.touches[0];
+            if (t) startPress(t.clientX, t.clientY, 'touch');
+        }, { passive: true });
+        card.addEventListener('touchmove', (event) => {
+            const t = event.touches && event.touches[0];
+            if (t) movePress(t.clientX, t.clientY);
+        }, { passive: true });
+        card.addEventListener('touchend', () => endPress('touchend', false), { passive: true });
+        card.addEventListener('touchcancel', () => endPress('touchcancel', true), { passive: true });
+
+        // Menu contestuale / callout / trascinamento dell'immagine: su iOS interrompono il tocco lungo.
+        card.addEventListener('contextmenu', (event) => { event.preventDefault(); owlLog('menu contestuale bloccato'); });
+        card.addEventListener('dragstart', (event) => event.preventDefault());
 
 
         // -----------------------------------------------
@@ -847,6 +843,19 @@
                 touch-action: pan-x;
                 user-select: none;
                 -webkit-user-select: none;
+                -webkit-touch-callout: none;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            .owlhub-trending-card * {
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+
+            .owlhub-trending-card img {
+                pointer-events: none;
+                -webkit-user-drag: none;
             }
 
             @media (max-width: 420px) {
@@ -1294,7 +1303,7 @@
     // INIT
     // =====================================================
 
-    const OWLFIN_TREND_VER = '1.11.18';
+    const OWLFIN_TREND_VER = '1.11.19';
     let memItems = null;
     let memDay = '';
     let inflight = null;
@@ -1421,6 +1430,7 @@
     // REGISTRO EVENTI (si conserva anche dopo la ricarica della pagina)
     // =====================================================
     const LOG_KEY = 'owlfin_trending_log_v1';
+    let lastTrailerAt = 0;
     const logBuf = [];
     let prevLog = [];
     try {
@@ -1719,7 +1729,7 @@
             const sec = home.querySelector('.owlhub-trending-section');
             const state = sec ? sec.getAttribute('data-owlfin-state') : 'assente';
             const age = Date.now() - seen;
-            if (age < 20000 || state !== 'ready') {
+            if (age < 20000 || state !== 'ready' || Date.now() - lastTrailerAt < 20000) {
                 text = 'Tendenza v' + OWLFIN_TREND_VER + ' · ' + state + ' · ' + Math.round(age / 100) / 10 + ' s' +
                     (sec ? ' · dopo ' + rowsBefore(home, sec) + '/' + contentRows(home).length + ' righe' +
                         (visualOk(home, sec) === false ? ' · VISIVO SOPRA' : '') : '') +
