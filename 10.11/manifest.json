@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.11.17.0",
+                "changelog": "1.11.17.0: Di Tendenza Ora: ancoraggio per posizione, la sezione sta dopo la seconda riga con contenuto della home (tra Prossimo e Film aggiunti) senza dipendere da titoli o righe presenti; riposizionata a ogni caricamento di righe, targhetta e registro mostrano la posizione\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.11.17.0.zip",
+                "checksum": "142314d8e38a90807a8280e9d706579d",
+                "timestamp": "2026-10-22T05:13:46Z"
+            },
+            {
                 "version": "1.11.16.0",
                 "changelog": "1.11.16.0: Di Tendenza Ora: la sezione usa solo classi proprie come righe studi e barra generi (prima usava verticalSection e itemsContainer di Jellyfin, che li passa in rassegna e ridisegna la home cancellando la sezione), segnaposto della stessa misura delle carte mentre carica\n",
                 "targetAbi": "10.11.0.0",

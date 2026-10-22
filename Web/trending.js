@@ -1038,12 +1038,86 @@
         return fallback;
     }
 
-    // Ancora di riserva: una qualunque riga della home (la seconda, cosi' resta sotto "Continua a guardare").
-    function fallbackAnchor(scope) {
-        const rows = Array.from(scope.querySelectorAll('.verticalSection'))
-            .filter((n) => !n.classList.contains('owlhub-trending-section'));
-        return rows[1] || rows[0] || null;
+    // ---- Ancoraggio per posizione (non dipende da titoli ne' da righe particolari) ----
+    // La sezione si mette dopo la TREND_AFTER-esima riga CON CONTENUTO della home. Si contano solo le righe
+    // di Jellyfin visibili e piene: quelle vuote (nessun elemento da mostrare), nascoste, il blocco
+    // "I miei media" e le righe nostre (studi, generi, tendenza) non vengono contate.
+    const TREND_AFTER = 2;
+
+    function isForeignNode(n, host) {
+        for (let e = n; e && e !== host; e = e.parentElement) {
+            const cl = typeof e.className === 'string' ? e.className : '';
+            if (/owlfin|owlhub|categories-wrapper|custom-rows/i.test((e.id || '') + ' ' + cl)) return true;
+        }
+        return false;
     }
+
+    function hiddenWithin(n, host) {
+        for (let e = n; e && e !== host; e = e.parentElement) {
+            if (e.classList && e.classList.contains('hide')) return true;
+            if (e.hasAttribute && e.hasAttribute('hidden')) return true;
+        }
+        return false;
+    }
+
+    function rowHasContent(r, host) {
+        if (r.querySelector('.verticalSection')) return false;          // contenitore di altre righe, non una riga
+        if (hiddenWithin(r, host)) return false;
+        if (!r.querySelector('.sectionTitle, .card, .itemsContainer > *')) return false;
+        const cards = r.querySelectorAll('.card');
+        if (cards.length && Array.prototype.every.call(cards, (c) =>
+            /^(CollectionFolder|UserView)$/i.test(c.getAttribute('data-type') || ''))) return false;   // "I miei media"
+        return true;
+    }
+
+    function contentRows(home) {
+        return Array.prototype.filter.call(home.querySelectorAll('.verticalSection'),
+            (r) => !isForeignNode(r, home) && rowHasContent(r, home));
+    }
+
+    function rowsBefore(home, sec) {
+        let n = 0;
+        contentRows(home).forEach((r) => {
+            if (sec.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_PRECEDING) n++;
+        });
+        return n;
+    }
+
+    // Il nodo dopo cui inserire (a livello della home, non dentro a una riga).
+    function placementPoint(home, sec) {
+        const rows = contentRows(home);
+        if (!rows.length) return null;
+        let n = rows[Math.min(TREND_AFTER, rows.length) - 1];
+        const nextOf = (x) => {
+            let nx = x.nextElementSibling;
+            if (sec && nx === sec) nx = sec.nextElementSibling;
+            return nx;
+        };
+        // se la riga e' l'ultima del proprio contenitore (es. gruppo dei "recenti") si sale di un livello
+        while (n.parentNode && n.parentNode !== home && !nextOf(n)) n = n.parentNode;
+        return n;
+    }
+
+    function inPlace(home, sec) {
+        if (!sec.parentNode || sec.closest('.verticalSection')) return false;
+        const rows = contentRows(home);
+        return rowsBefore(home, sec) === Math.min(TREND_AFTER, rows.length);
+    }
+
+    function layoutSummary(home) {
+        if (!home) return '(home assente)';
+        const names = [];
+        Array.prototype.forEach.call(home.querySelectorAll('.verticalSection, .owlhub-trending-section'), (r) => {
+            if (r.classList.contains('owlhub-trending-section')) { names.push('>>TENDENZA<<'); return; }
+            if (isForeignNode(r, home) || !rowHasContent(r, home)) return;
+            const e = r.querySelector('.sectionTitle');
+            names.push(e ? e.textContent.trim().slice(0, 22) : '(senza titolo)');
+        });
+        return 'righe: ' + (names.join(' | ') || '-');
+    }
+
+    let posMoves = 0;
+    let posMovesGen = -1;
 
     // Sezione con classi SOLO nostre (come righe studi e barra generi): per Jellyfin e' un blocco opaco.
     function buildStandaloneSection(items) {
@@ -1067,27 +1141,40 @@
     }
 
     function placeSection(home, built) {
-        const anchor = findAnchorSection(home) || fallbackAnchor(home);
-        if (anchor && anchor.parentNode) {
-            anchor.parentNode.insertBefore(built, anchor);
+        const n = placementPoint(home, null);
+        if (n && n.parentNode) {
+            n.parentNode.insertBefore(built, n.nextSibling);
         } else {
-            home.insertBefore(built, home.children[1] || null);
+            home.appendChild(built);                            // home ancora vuota: poi fixPosition la sposta
         }
     }
 
-    // Se la riga giusta compare dopo (la home si carica a pezzi) o cambia, la sezione la raggiunge:
-    // deve stare subito prima di "Film aggiunti di recente", non dove e' capitata.
+    // Le righe arrivano a pezzi e in ordine qualunque: a ogni controllo la sezione viene riportata
+    // dopo la 2a riga con contenuto. Se e' gia' a posto non si tocca nulla (nessuna mutazione).
     function fixPosition(home) {
         const sec = home.querySelector('.owlhub-trending-section');
-        if (!sec) return;
-        const anchor = findAnchorSection(home);
-        if (!anchor || anchor === sec || !anchor.parentNode) return;
+        if (!sec || inPlace(home, sec)) return false;
+        if (posMovesGen !== navGen) { posMovesGen = navGen; posMoves = 0; }
+        if (posMoves >= 40) return false;                       // freno: non si litiga all'infinito con altro codice
+        const n = placementPoint(home, sec);
+        if (!n || !n.parentNode) return false;
+        posMoves++;
+        n.parentNode.insertBefore(sec, n.nextSibling);
+        if (posMoves <= 6) owlLog('posizione corretta, ' + layoutSummary(home));
+        return true;
+    }
 
-        let n = sec.nextElementSibling;
-        while (n && !n.classList.contains('verticalSection')) n = n.nextElementSibling;
-        if (n !== anchor || sec.parentNode !== anchor.parentNode) {
-            anchor.parentNode.insertBefore(sec, anchor);
-        }
+    let fixPending = false;
+    function fixSoon() {
+        if (fixPending) return;
+        fixPending = true;
+        requestAnimationFrame(() => {
+            fixPending = false;
+            try {
+                const h = visibleHome();
+                if (h) fixPosition(h);
+            } catch (e) { /* nessun problema */ }
+        });
     }
 
     function injectSection(items) {
@@ -1151,7 +1238,7 @@
     // INIT
     // =====================================================
 
-    const OWLFIN_TREND_VER = '1.11.16';
+    const OWLFIN_TREND_VER = '1.11.17';
     let memItems = null;
     let memDay = '';
     let inflight = null;
@@ -1292,17 +1379,7 @@
     owlLog('script avviato v' + OWLFIN_TREND_VER + ' ' + location.pathname + location.hash);
 
     function neighbours(sec) {
-        const title = (n) => {
-            while (n && !n.classList.contains('verticalSection')) n = n.previousElementSibling;
-            const e = n && n.querySelector('.sectionTitle');
-            return e ? e.textContent.trim() : '?';
-        };
-        const nextTitle = (n) => {
-            while (n && !n.classList.contains('verticalSection')) n = n.nextElementSibling;
-            const e = n && n.querySelector('.sectionTitle');
-            return n ? (e ? e.textContent.trim() : '(riga senza titolo)') : '(fine)';
-        };
-        return 'dopo "' + title(sec.previousElementSibling) + '", prima di "' + nextTitle(sec.nextElementSibling) + '"';
+        return layoutSummary((sec && sec.closest && sec.closest('.homeSectionsContainer')) || getActiveHome());
     }
 
     let navGen = 0;
@@ -1411,7 +1488,7 @@
             if (!home._owlSeen) home._owlSeen = Date.now();
             // Il guscio compare appena c'e' la riga giusta ("Film aggiunti di recente"); se non arriva
             // entro 3 s dalla comparsa della home si inserisce comunque (e si sposta quando la riga arriva).
-            if (!sec && (findAnchorSection(home) || Date.now() - home._owlSeen > 3000)) {
+            if (!sec && (contentRows(home).length >= TREND_AFTER || Date.now() - home._owlSeen > 3000)) {
                 sec = buildShell();
                 placeSection(home, sec);
                 owlLog('guscio inserito, ' + neighbours(sec));
@@ -1420,17 +1497,11 @@
 
             const state = sec ? sec.getAttribute('data-owlfin-state') : null;
             if (!sec) {
-                // in attesa della riga giusta: niente da fare, si ritenta
+                // in attesa delle prime righe della home: niente da fare, si ritenta
             } else if (state !== 'ready') {
                 fillSection(sec);
             } else {
-                const anchor = findAnchorSection(home);
-                if (anchor && sec._owlStandalone && sec._owlItems) {
-                    // la riga giusta e' arrivata dopo: si rifa' con lo stesso aspetto della riga
-                    applyItems(sec, sec._owlItems);
-                } else if (anchor || Date.now() - navAt > 10000) {
-                    done = true;
-                }
+                if (contentRows(home).length > TREND_AFTER || Date.now() - navAt > 10000) done = true;
                 if (shownStale && !inflight) loadData();
             }
         }
@@ -1512,7 +1583,8 @@
     const owlfinGuard = new MutationObserver(() => {
         if (document.hidden) return;
         const home = visibleHome();
-        if (!home || home.querySelector('.owlhub-trending-section')) return;
+        if (!home) return;
+        if (home.querySelector('.owlhub-trending-section')) { fixSoon(); return; }
         const now = Date.now();
         if (now - guardLast < 300) return;
         guardLast = now;
@@ -1529,7 +1601,7 @@
         const home = getActiveHome();
         if (!home) return;
         const sec = home.querySelector('.owlhub-trending-section');
-        if (!sec) restart();
+        if (!sec) restart(); else fixPosition(home);
     }, 1500);
 
     function onHomeRoute() {
@@ -1557,6 +1629,7 @@
             'client: ' + (clientReady() ? 'pronto' : 'NON pronto') + ', chiave TMDB: ' + (tmdbKey() ? 'si' : 'NO') +
                 ', dati: ' + (memItems ? memItems.length : 0) + (shownStale ? ' (di riserva)' : '') + ', rimossa da altri: ' + removedByOthers,
             'motivo: ' + (lastReason || '-'),
+            home ? layoutSummary(home) : 'righe: -',
             '--- questa pagina ---'
         ].concat(logBuf.map((e) => fmt(e, t0)));
         if (prevLog.length) {
@@ -1591,6 +1664,7 @@
             const age = Date.now() - seen;
             if (age < 20000 || state !== 'ready') {
                 text = 'Tendenza v' + OWLFIN_TREND_VER + ' · ' + state + ' · ' + Math.round(age / 100) / 10 + ' s' +
+                    (sec ? ' · dopo ' + rowsBefore(home, sec) + '/' + contentRows(home).length + ' righe' : '') +
                     (removedByOthers ? ' · rimossa x' + removedByOthers : '');
             }
         }
