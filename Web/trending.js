@@ -1190,6 +1190,20 @@
         const title = document.createElement('h2');
         title.className = 'owlfin-trend-title';
         title.textContent = SECTION_TITLE;
+        let taps = 0;
+        let tapsAt = 0;
+        title.addEventListener('click', () => {
+            const now = Date.now();
+            taps = now - tapsAt < 1200 ? taps + 1 : 1;
+            tapsAt = now;
+            if (taps >= 5) {
+                taps = 0;
+                try {
+                    if (DEBUG_UI) localStorage.removeItem('owlfin_debug'); else localStorage.setItem('owlfin_debug', '1');
+                } catch (e) { /* nessun problema */ }
+                location.reload();
+            }
+        });
 
         const row = document.createElement('div');
         row.className = 'owlhub-trending-row';
@@ -1303,7 +1317,7 @@
     // INIT
     // =====================================================
 
-    const OWLFIN_TREND_VER = '1.11.19';
+    const OWLFIN_TREND_VER = '1.11.20';
     let memItems = null;
     let memDay = '';
     let inflight = null;
@@ -1429,6 +1443,9 @@
     // =====================================================
     // REGISTRO EVENTI (si conserva anche dopo la ricarica della pagina)
     // =====================================================
+    const DEBUG_UI = (() => {
+        try { return localStorage.getItem('owlfin_debug') === '1'; } catch (e) { return false; }
+    })();
     const LOG_KEY = 'owlfin_trending_log_v1';
     let lastTrailerAt = 0;
     const logBuf = [];
@@ -1440,7 +1457,7 @@
     function owlLog(msg) {
         logBuf.push({ t: Date.now(), m: msg });
         if (logBuf.length > 40) logBuf.shift();
-        try { localStorage.setItem(LOG_KEY, JSON.stringify(logBuf)); } catch (e) { /* nessun problema */ }
+        if (DEBUG_UI) { try { localStorage.setItem(LOG_KEY, JSON.stringify(logBuf)); } catch (e) { /* nessun problema */ } }
     }
     owlLog('script avviato v' + OWLFIN_TREND_VER + ' ' + location.pathname + location.hash);
 
@@ -1722,6 +1739,7 @@
 
     function owlfinBadge() {
         let badge = document.getElementById('owlfin-trending-badge');
+        if (!DEBUG_UI) { if (badge) badge.remove(); return; }
         const home = visibleHome();
         let text = '';
         if (home && !document.hidden && !document.getElementById('owlfin-trending-debug')) {
@@ -1751,10 +1769,11 @@
         }
         badge.textContent = text;
     }
-    setInterval(owlfinBadge, 500);
+    if (DEBUG_UI) setInterval(owlfinBadge, 500);
 
     function owlfinDebugChip() {
         let chip = document.getElementById('owlfin-trending-debug');
+        if (!DEBUG_UI) { if (chip) chip.remove(); return; }
         const missing = !document.querySelector('.owlhub-trending-section[data-owlfin-state="ready"]');
         const vh = visibleHome();
         if (dbg.hidden || !missing || !vh || Date.now() - (vh._owlSeen || Date.now()) < 9000 || document.hidden) {
@@ -1788,7 +1807,7 @@
             logBuf.slice(-8).map((e) => '+' + (Math.round((e.t - dbg.t0) / 100) / 10) + 's ' + e.m).join('\n')
         ].join('\n');
     }
-    setInterval(owlfinDebugChip, 1500);
+    if (DEBUG_UI) setInterval(owlfinDebugChip, 1500);
 
     window.__owlfinTrending = () => ({
         clientReady: clientReady(), tmdbKey: !!tmdbKey(), home: !!getActiveHome(),
