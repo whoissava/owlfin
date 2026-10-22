@@ -1116,6 +1116,60 @@
         return 'righe: ' + (names.join(' | ') || '-');
     }
 
+    // ---- Ordine visivo (CSS "order" del contenitore) ----
+    function visualOk(home, sec) {
+        try {
+            const n = placementPoint(home, sec);
+            if (!n || n.parentNode !== sec.parentNode) return null;
+            const rs = sec.getBoundingClientRect();
+            const rn = n.getBoundingClientRect();
+            if (!rs.height || !rn.height) return null;
+            return rs.top >= rn.top + 1;                       // la sezione deve stare sotto la riga che la precede
+        } catch (e) { return null; }
+    }
+
+    function matchVisualOrder(home, sec) {
+        try {
+            const parent = sec.parentElement;
+            if (!parent) return;
+            const pd = getComputedStyle(parent).display;
+            if (/flex|grid/.test(pd)) {
+                let n = placementPoint(home, sec);
+                if (!n || n.parentNode !== parent) n = sec.previousElementSibling;
+                if (n) {
+                    const want = getComputedStyle(n).order;
+                    if (getComputedStyle(sec).order !== want) {
+                        sec.style.order = want;
+                        owlLog('ordine CSS allineato a ' + want + ' (' + pd + ')');
+                    }
+                }
+            }
+            if (!sec._owlVisChecked && visualOk(home, sec) === false) {
+                sec._owlVisChecked = true;
+                owlLog('ATTENZIONE: visivamente sopra la riga precedente, ' + visualSummary(home));
+            }
+        } catch (e) { /* nessun problema */ }
+    }
+
+    function visualSummary(home) {
+        try {
+            const sec = home.querySelector('.owlhub-trending-section');
+            const items = contentRows(home).slice();
+            if (sec) items.push(sec);
+            const cs = getComputedStyle(home);
+            const out = items.map((r) => {
+                const e = r.querySelector && r.querySelector('.sectionTitle');
+                const bb = r.getBoundingClientRect();
+                return { nm: r === sec ? 'TEND' : (e ? e.textContent.trim().slice(0, 10) : '?'),
+                         y: Math.round(bb.top), o: getComputedStyle(r).order };
+            }).sort((a, b) => a.y - b.y);
+            const par = sec && sec.parentElement ? ' padre=' + (sec.parentElement.className || sec.parentElement.nodeName).toString().slice(0, 24) +
+                '/' + getComputedStyle(sec.parentElement).display : '';
+            return 'visivo(' + cs.display + (cs.display.indexOf('flex') >= 0 ? '/' + cs.flexDirection : '') + par + '): ' +
+                out.map((x) => x.nm + '@' + x.y + '/o' + x.o).join(' | ');
+        } catch (e) { return 'visivo: ?'; }
+    }
+
     let posMoves = 0;
     let posMovesGen = -1;
 
@@ -1153,13 +1207,15 @@
     // dopo la 2a riga con contenuto. Se e' gia' a posto non si tocca nulla (nessuna mutazione).
     function fixPosition(home) {
         const sec = home.querySelector('.owlhub-trending-section');
-        if (!sec || inPlace(home, sec)) return false;
+        if (!sec) return false;
+        if (inPlace(home, sec)) { matchVisualOrder(home, sec); return false; }
         if (posMovesGen !== navGen) { posMovesGen = navGen; posMoves = 0; }
         if (posMoves >= 40) return false;                       // freno: non si litiga all'infinito con altro codice
         const n = placementPoint(home, sec);
         if (!n || !n.parentNode) return false;
         posMoves++;
         n.parentNode.insertBefore(sec, n.nextSibling);
+        matchVisualOrder(home, sec);
         if (posMoves <= 6) owlLog('posizione corretta, ' + layoutSummary(home));
         return true;
     }
@@ -1238,7 +1294,7 @@
     // INIT
     // =====================================================
 
-    const OWLFIN_TREND_VER = '1.11.17';
+    const OWLFIN_TREND_VER = '1.11.18';
     let memItems = null;
     let memDay = '';
     let inflight = null;
@@ -1630,6 +1686,7 @@
                 ', dati: ' + (memItems ? memItems.length : 0) + (shownStale ? ' (di riserva)' : '') + ', rimossa da altri: ' + removedByOthers,
             'motivo: ' + (lastReason || '-'),
             home ? layoutSummary(home) : 'righe: -',
+            home ? visualSummary(home) : '',
             '--- questa pagina ---'
         ].concat(logBuf.map((e) => fmt(e, t0)));
         if (prevLog.length) {
@@ -1664,7 +1721,8 @@
             const age = Date.now() - seen;
             if (age < 20000 || state !== 'ready') {
                 text = 'Tendenza v' + OWLFIN_TREND_VER + ' · ' + state + ' · ' + Math.round(age / 100) / 10 + ' s' +
-                    (sec ? ' · dopo ' + rowsBefore(home, sec) + '/' + contentRows(home).length + ' righe' : '') +
+                    (sec ? ' · dopo ' + rowsBefore(home, sec) + '/' + contentRows(home).length + ' righe' +
+                        (visualOk(home, sec) === false ? ' · VISIVO SOPRA' : '') : '') +
                     (removedByOthers ? ' · rimossa x' + removedByOthers : '');
             }
         }

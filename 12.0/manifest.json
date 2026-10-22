@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.8.18.0",
+                "changelog": "2.8.18.0: Di Tendenza Ora: ordine visivo corretto, la sezione prende lo stesso order CSS della riga che la precede (nel codice era gia' dopo Prossimo ma sullo schermo finiva in cima); registro e targhetta mostrano la posizione visiva\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.8.18.0.zip",
+                "checksum": "dd694f127912de5893ba64e522b9b5a8",
+                "timestamp": "2026-10-22T06:12:20Z"
+            },
+            {
                 "version": "2.8.17.0",
                 "changelog": "2.8.17.0: Di Tendenza Ora: ancoraggio per posizione, la sezione sta dopo la seconda riga con contenuto della home (tra Prossimo e Film aggiunti) senza dipendere da titoli o righe presenti; riposizionata a ogni caricamento di righe, targhetta e registro mostrano la posizione\n",
                 "targetAbi": "12.0.0.0",
