@@ -78,6 +78,21 @@
                     </div>
 
                     <div class="verticalSection">
+                        <h3 class="sectionTitle" data-i18n="owlfin_section_calendar">Calendario</h3>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input id="CalendarEnabled" name="CalendarEnabled" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="owlfin_calendar_label">Calendario uscite</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="owlfin_calendar_desc">
+                                Calendario a vetro con le uscite di film e serie (passate, di oggi e future), richiamabile dal menu laterale. "Richieste" usa Radarr e Sonarr, "Globali" aggiunge le uscite TMDB (serve la API key TMDB).
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="verticalSection">
                         <h3 class="sectionTitle" data-i18n="owlfin_section_search">Ricerca</h3>
 
                         <div class="checkboxContainer checkboxContainer-withDescription">
@@ -154,6 +169,19 @@
                         </div>
 
                         <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="RadarrUrl" data-i18n="owlfin_radarr_url">URL Radarr</label>
+                            <input id="RadarrUrl" name="RadarrUrl" type="text" is="emby-input" placeholder="http://localhost:7878" />
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="RadarrApiKey" data-i18n="owlfin_radarr_key">API key Radarr</label>
+                            <input id="RadarrApiKey" name="RadarrApiKey" type="password" is="emby-input" />
+                            <div class="fieldDescription" data-i18n="owlfin_radarr_desc">
+                                Per il calendario: uscite dei film richiesti. Le serie usano URL e API key Sonarr qui sopra.
+                            </div>
+                        </div>
+
+                        <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="SeerrUrl" data-i18n="owlfin_seerr_url">URL Seerr</label>
                             <input id="SeerrUrl" name="SeerrUrl" type="text" is="emby-input" placeholder="http://localhost:5055" />
                         </div>
@@ -194,6 +222,12 @@
                     owlfin_section_discover: 'Scopri',
                     owlfin_discover_label:   'Scopri (trailer a scorrimento)',
                     owlfin_discover_desc:    'Feed a schermo intero di trailer in stile TikTok con titoli casuali dalla tua libreria, richiamabile dal menu laterale. Usa i trailer di Jellyfin o, se presente, la API key TMDB.',
+                    owlfin_section_calendar: 'Calendario',
+                    owlfin_calendar_label:   'Calendario uscite',
+                    owlfin_calendar_desc:    'Calendario a vetro con le uscite di film e serie (passate, di oggi e future), richiamabile dal menu laterale. "Richieste" usa Radarr e Sonarr, "Globali" aggiunge le uscite TMDB (serve la API key TMDB).',
+                    owlfin_radarr_url:       'URL Radarr',
+                    owlfin_radarr_key:       'API key Radarr',
+                    owlfin_radarr_desc:      'Per il calendario: uscite dei film richiesti. Le serie usano URL e API key Sonarr qui sopra.',
                     owlfin_section_search:   'Ricerca',
                     owlfin_search_label:     'Griglia poster nei suggerimenti',
                     owlfin_search_desc:      'Sostituisce i suggerimenti testuali con una griglia di locandine casuali dalla tua libreria.',
@@ -228,6 +262,12 @@
                     owlfin_section_discover: 'Discover',
                     owlfin_discover_label:   'Discover (scrolling trailers)',
                     owlfin_discover_desc:    'Full-screen TikTok-style trailer feed with random titles from your library, available from the side menu. Uses Jellyfin trailers or, if set, the TMDB API key.',
+                    owlfin_section_calendar: 'Calendar',
+                    owlfin_calendar_label:   'Release calendar',
+                    owlfin_calendar_desc:    'Glass calendar of movie and series releases (past, today and upcoming), available from the side menu. "Requested" uses Radarr and Sonarr, "Global" adds TMDB releases (needs the TMDB API key).',
+                    owlfin_radarr_url:       'Radarr URL',
+                    owlfin_radarr_key:       'Radarr API key',
+                    owlfin_radarr_desc:      'For the calendar: releases of requested movies. Series use the Sonarr URL and API key above.',
                     owlfin_section_search:   'Search',
                     owlfin_search_label:     'Poster grid in search suggestions',
                     owlfin_search_desc:      'Replaces text suggestions with a random poster grid from your library.',
@@ -261,7 +301,7 @@
             }
 
             var OwlfinConfig = { pluginUniqueId: 'b13839a6-5916-4f75-aed9-331901b8e3e6' };
-            var IDS = ['CategoriesEnabled','StudiosEnabled','GenresEnabled','TrendingClientEnabled','SearchGridEnabled','DiscoverEnabled','PopupEnabled','SonarrEnabled','ChatEnabled'];
+            var IDS = ['CategoriesEnabled','StudiosEnabled','GenresEnabled','TrendingClientEnabled','SearchGridEnabled','DiscoverEnabled','CalendarEnabled','PopupEnabled','SonarrEnabled','ChatEnabled'];
             function q(id) { return document.querySelector('#' + id); }
 
             document.querySelector('#OwlfinConfigPage')
@@ -272,6 +312,8 @@
                         IDS.forEach(function (id) { q(id).checked = !!config[id]; });
                         q('TmdbApiKey').value   = config.TmdbApiKey   || '';
                         q('SeerrUrl').value     = config.SeerrUrl     || '';
+                        q('RadarrUrl').value    = config.RadarrUrl    || '';
+                        q('RadarrApiKey').value = config.RadarrApiKey || '';
                         q('SeerrApiKey').value  = config.SeerrApiKey  || '';
                         q('SonarrUrl').value    = config.SonarrUrl    || '';
                         q('SonarrApiKey').value = config.SonarrApiKey || '';
@@ -287,6 +329,8 @@
                         IDS.forEach(function (id) { config[id] = q(id).checked; });
                         config.TmdbApiKey   = q('TmdbApiKey').value;
                         config.SeerrUrl     = q('SeerrUrl').value;
+                        config.RadarrUrl    = q('RadarrUrl').value;
+                        config.RadarrApiKey = q('RadarrApiKey').value;
                         config.SeerrApiKey  = q('SeerrApiKey').value;
                         config.SonarrUrl    = q('SonarrUrl').value;
                         config.SonarrApiKey = q('SonarrApiKey').value;

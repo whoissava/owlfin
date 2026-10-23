@@ -82,6 +82,11 @@ public static class TransformationPatches
             scripts += BuildScriptElement("Owlfin-Jellytok", "Web.jellytok.js");
         }
 
+        if (config.CalendarEnabled)
+        {
+            scripts += BuildScriptElement("Owlfin-Calendar", "Web.calendar.js");
+        }
+
         if (string.IsNullOrEmpty(scripts))
         {
             return contents;

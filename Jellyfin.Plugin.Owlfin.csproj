@@ -59,6 +59,8 @@
     <EmbeddedResource Include="Web\search.js" />
     <None Remove="Web\jellytok.js" />
     <EmbeddedResource Include="Web\jellytok.js" />
+    <None Remove="Web\calendar.js" />
+    <EmbeddedResource Include="Web\calendar.js" />
   </ItemGroup>
 
 </Project>

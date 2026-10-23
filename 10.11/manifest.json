@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.12.0.0",
+                "changelog": "1.12.0.0: Calendario uscite: calendario a vetro raggiungibile dal menu laterale, con vista Calendario e Agenda, filtro Globali (TMDB) o Richieste (Radarr e Sonarr), locandina, trama e dettagli di ogni uscita. Nuove impostazioni: URL e API key di Radarr, attivazione del calendario\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.12.0.0.zip",
+                "checksum": "365f1c3469f0c7fc8b642dc0d92f36bf",
+                "timestamp": "2026-10-23T13:36:43Z"
+            },
+            {
                 "version": "1.11.20.0",
                 "changelog": "1.11.20.0: Di Tendenza Ora: targhetta verde, riquadro diagnostico e registro a schermo spenti di default (si accendono e spengono con 5 tocchi di fila sul titolo della sezione)\n",
                 "targetAbi": "10.11.0.0",

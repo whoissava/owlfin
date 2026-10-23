@@ -4,6 +4,48 @@
         <name>Jellyfin.Plugin.Owlfin</name>
     </assembly>
     <members>
+        <member name="T:Jellyfin.Plugin.Owlfin.Api.CalendarController">
+            <summary>
+            Dati per il calendario delle uscite (calendar.js): film e serie in uscita, presenti e passate.
+            Mette insieme le uscite "richieste" (calendari di Radarr e Sonarr) e quelle globali (TMDB).
+            URL e API key di Radarr, Sonarr e TMDB restano solo in <see cref="T:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration"/>:
+            il browser parla soltanto con questo endpoint e non le vede mai. Servono utenti Jellyfin autenticati.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.CalendarController.#ctor(Microsoft.Extensions.Logging.ILogger{Jellyfin.Plugin.Owlfin.Api.CalendarController})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Owlfin.Api.CalendarController"/> class.
+            </summary>
+            <param name="logger">Instance of the <see cref="T:Microsoft.Extensions.Logging.ILogger`1"/> interface.</param>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Api.CalendarController.TmdbBaseUrl">
+            <summary>
+            Gets or sets l'indirizzo base delle API TMDB (modificabile solo per i test).
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.CalendarController.GetStatus">
+            <summary>
+            Dice quali fonti sono configurate (Radarr, Sonarr, TMDB).
+            </summary>
+            <returns>Un oggetto JSON <c>{ "radarr": true|false, "sonarr": true|false, "tmdb": true|false }</c>.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.CalendarController.GetEvents(System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+            Elenco delle uscite comprese fra due date (inclusive).
+            </summary>
+            <param name="start">Prima data, formato yyyy-MM-dd.</param>
+            <param name="end">Ultima data, formato yyyy-MM-dd (al massimo 100 giorni dopo la prima).</param>
+            <param name="source">"arr" per le sole uscite richieste (Radarr e Sonarr), "all" per anche quelle globali (TMDB).</param>
+            <param name="lang">Lingua dei testi, es. "it" o "en".</param>
+            <param name="region">Paese per le date di uscita in sala, es. "IT" (di norma ricavato dalla lingua).</param>
+            <returns>Un oggetto JSON <c>{ "events": [...], "errors": [...], "sources": {...} }</c>.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Owlfin.Api.CalendarController.TmdbReleaseDateAsync(System.Int32,System.String,System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+            La data di uscita nel paese richiesto: discover indica solo la data "principale" del film, quella
+            regionale (es. in sala in Italia) si legge da release_dates. Il risultato resta in memoria 12 ore.
+            </summary>
+        </member>
         <member name="T:Jellyfin.Plugin.Owlfin.Api.ChatController">
             <summary>
             General chat between users of this server. The client sends its own
@@ -263,6 +305,24 @@
         <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.SeerrApiKey">
             <summary>
             Gets or sets the Seerr API key. Used only server-side by the Seerr proxy controller.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.CalendarEnabled">
+            <summary>
+            Gets or sets a value indicating whether the release calendar
+            (calendar.js) is injected into the web client. Restart Jellyfin
+            after changing this.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.RadarrUrl">
+            <summary>
+            Gets or sets the base URL of the user's Radarr instance, e.g.
+            http://localhost:7878. Called server-side only.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.RadarrApiKey">
+            <summary>
+            Gets or sets the Radarr API key. Used only server-side by the calendar controller.
             </summary>
         </member>
         <member name="T:Jellyfin.Plugin.Owlfin.Helpers.ChatStorage">

@@ -27,6 +27,9 @@ public class PluginConfiguration : BasePluginConfiguration
         DiscoverEnabled = true;
         SeerrUrl = string.Empty;
         SeerrApiKey = string.Empty;
+        CalendarEnabled = true;
+        RadarrUrl = string.Empty;
+        RadarrApiKey = string.Empty;
     }
 
     /// <summary>
@@ -127,4 +130,22 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets the Seerr API key. Used only server-side by the Seerr proxy controller.
     /// </summary>
     public string SeerrApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the release calendar
+    /// (calendar.js) is injected into the web client. Restart Jellyfin
+    /// after changing this.
+    /// </summary>
+    public bool CalendarEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the base URL of the user's Radarr instance, e.g.
+    /// http://localhost:7878. Called server-side only.
+    /// </summary>
+    public string RadarrUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the Radarr API key. Used only server-side by the calendar controller.
+    /// </summary>
+    public string RadarrApiKey { get; set; } = string.Empty;
 }
