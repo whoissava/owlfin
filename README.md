@@ -8,7 +8,7 @@ Personalizzazioni indipendenti per il client web di Jellyfin, ognuna attivabile 
 
 | Funzione | Descrizione |
 |---|---|
-| **Sfoglia Generi** | Pagina a schermo intero: per ogni genere presente sul server un titolo, un banner (75% immagine, 25% trama) e un carosello di titoli che scorre da solo o a mano e cambia il banner |
+| **Sfoglia Generi** | Pagina a schermo intero: per ogni genere del server un titolo con pulsante "Vedi tutti" (lista nativa), un banner (75% immagine, 25% trama) e il carosello di tutti i titoli in ordine casuale, che scorre da solo o a mano e cambia il banner |
 | **Righe per studio/piattaforma** | Righe espandibili per studio e piattaforma (Netflix, Prime, Apple TV+...) |
 | **Prossimo episodio** | Mostra *"Prossimo episodio il ..."* sulle pagine serie/stagione, leggendo la data da Sonarr |
 | **Selettore stagioni** | Selettore stagioni con griglia episodi a scorrimento, segno automatico puntate precedenti e pulsante "Segna stagione come vista" |

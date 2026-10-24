@@ -5,7 +5,7 @@
  * e sotto un carosello dei titoli del genere. Il carosello scorre da solo e a mano, e il banner
  * segue il titolo in primo piano. Toggle via Configuration.GenresEnabled.
  *
- * @version 2.0.0
+ * @version 2.1.0
  * @license GPL-3.0
  */
 (function () {
@@ -18,19 +18,17 @@
     var LANG = (navigator.language || 'it').split('-')[0];
     var I18N = {
         it: { menu: 'Sfoglia Generi', title: 'Sfoglia generi', all: 'Tutto', movies: 'Film', series: 'Serie TV', film: 'FILM', serie: 'SERIE',
-              details: 'Dettagli', back: 'Indietro', noGenres: 'Nessun genere trovato', error: 'Errore nel caricamento', retry: 'Riprova',
+              details: 'Dettagli', viewAll: 'Vedi tutti', back: 'Indietro', noGenres: 'Nessun genere trovato', error: 'Errore nel caricamento', retry: 'Riprova',
               notAuth: 'Non autenticato', prev: 'Precedente', next: 'Successivo' },
         en: { menu: 'Browse Genres', title: 'Browse genres', all: 'All', movies: 'Movies', series: 'TV Shows', film: 'MOVIE', serie: 'SERIES',
-              details: 'Details', back: 'Back', noGenres: 'No genres found', error: 'Loading error', retry: 'Retry',
+              details: 'Details', viewAll: 'See all', back: 'Back', noGenres: 'No genres found', error: 'Loading error', retry: 'Retry',
               notAuth: 'Not authenticated', prev: 'Previous', next: 'Next' }
     };
     var t = I18N[LANG] || I18N.en;
 
-    var TYPE_KEY = 'owlfin_genres_type';
     var PAGE_ID = 'owlfin-gp';
     var AUTO_MS = 6500;       // ogni quanto avanza da solo il carosello
     var IDLE_MS = 12000;      // pausa dopo un gesto dell'utente
-    var PER_GENRE = 20;       // titoli per genere
 
     // ── util ────────────────────────────────────────────────────────
     function api() { return window.ApiClient || null; }
@@ -95,17 +93,14 @@
             '@keyframes ogIn{from{opacity:0}to{opacity:1}}',
             '#owlfin-gp *{box-sizing:border-box;}',
             ':where(#owlfin-gp) button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;}',
-            '.og-top{flex:none;display:flex;align-items:center;gap:12px;padding:10px clamp(12px,3vw,40px);border-bottom:1px solid rgba(255,255,255,.08);}',
-            '.og-back{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);flex:none;}',
-            '.og-back:active{background:rgba(255,255,255,.2);}',
-            '.og-h{flex:1;min-width:0;font-size:1.15rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
-            '.og-tabs{display:flex;gap:6px;flex:none;}',
-            '.og-tab{padding:7px 14px;border-radius:999px;font-size:.82rem;font-weight:600;color:var(--mut);background:rgba(255,255,255,.07);transition:background .15s,color .15s;white-space:nowrap;}',
-            '.og-tab.on{background:rgba(34,211,238,.2);color:#fff;box-shadow:inset 0 0 0 1px rgba(34,211,238,.6);}',
             '.og-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin;}',
-            '.og-list{max-width:1500px;margin:0 auto;padding:6px clamp(12px,3vw,40px) 60px;}',
-            '.og-g{padding-top:26px;}',
-            '.og-gt{margin:0 0 12px;font-size:clamp(1.35rem,3.4vw,2.2rem);font-weight:800;letter-spacing:.05em;text-transform:uppercase;line-height:1.1;}',
+            '.og-list{max-width:1500px;margin:0 auto;padding:4px clamp(12px,3vw,40px) 60px;}',
+            '.og-g{padding-top:22px;}',
+            '.og-gh{display:flex;align-items:center;gap:14px;margin:0 0 12px;min-width:0;}',
+            '.og-gt{margin:0;min-width:0;font-size:clamp(1.35rem,3.4vw,2.2rem);font-weight:800;letter-spacing:.05em;text-transform:uppercase;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
+            '.og-all{flex:none;display:inline-flex;align-items:center;gap:2px;padding:7px 8px 7px 14px;border-radius:999px;font-size:.8rem;font-weight:700;white-space:nowrap;background:rgba(34,211,238,.16);box-shadow:inset 0 0 0 1px rgba(34,211,238,.5);transition:background .15s;}',
+            '.og-all:hover{background:rgba(34,211,238,.3);}',
+            '.og-all:active{background:rgba(34,211,238,.4);}',
             '.og-skel{height:clamp(230px,30vw,380px);border-radius:18px;background:linear-gradient(100deg,rgba(255,255,255,.04) 30%,rgba(255,255,255,.09) 50%,rgba(255,255,255,.04) 70%);background-size:200% 100%;animation:ogSh 1.4s linear infinite;}',
             '@keyframes ogSh{from{background-position:200% 0}to{background-position:-200% 0}}',
             // banner: 75% immagine, 25% trama
@@ -128,7 +123,7 @@
             '.og-open-btn:hover{background:rgba(34,211,238,.34);}',
             // carosello
             '.og-railw{position:relative;}',
-            '.og-rail{position:relative;display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;padding:16px 2px 8px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;}',
+            '.og-rail{position:relative;display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;margin:0 -12px;padding:18px 12px 16px;scroll-padding-inline:12px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;}',
             '.og-rail::-webkit-scrollbar{display:none;}',
             '.og-c{flex:none;width:clamp(104px,13vw,150px);text-align:left;scroll-snap-align:start;transition:transform .2s ease;}',
             '.og-c .og-p{display:block;width:100%;aspect-ratio:2/3;border-radius:11px;overflow:hidden;background:rgba(255,255,255,.07);box-shadow:0 6px 16px rgba(0,0,0,.35);transition:box-shadow .2s ease;}',
@@ -138,14 +133,14 @@
             '.og-c.on .og-p{box-shadow:0 0 0 2.5px var(--ac),0 10px 24px rgba(34,211,238,.28);}',
             '.og-c.on .og-ct{color:#fff;font-weight:600;}',
             '.og-arr{position:absolute;top:calc(50% - 22px);width:40px;height:40px;border-radius:50%;display:none;align-items:center;justify-content:center;background:rgba(10,14,20,.78);box-shadow:0 4px 14px rgba(0,0,0,.5);z-index:2;}',
-            '.og-arr.l{left:-8px}.og-arr.r{right:-8px}',
+            '.og-arr.l{left:-4px}.og-arr.r{right:-4px}',
             '@media (hover:hover) and (pointer:fine){.og-arr{display:flex;opacity:0;transition:opacity .15s}.og-railw:hover .og-arr{opacity:1}}',
             '.og-msg{padding:60px 20px;text-align:center;color:var(--mut);font-size:.95rem;}',
             '.og-msg button{margin-top:14px;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,.12);font-weight:600;}',
             '.og-spin{width:28px;height:28px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:#fff;animation:ogSp .7s linear infinite;margin:50px auto;}',
             '@keyframes ogSp{to{transform:rotate(360deg)}}',
             // telefono: immagine sopra, trama sotto
-            '@media (max-width:720px){.og-b{display:block;height:auto;}.og-bi{aspect-ratio:16/9;}.og-bi:after{background:linear-gradient(0deg,#0c1118 0%,rgba(12,17,24,0) 55%);}.og-bt{padding:12px 14px 16px;background:#0c1118;}.og-bp{-webkit-line-clamp:4;}.og-tabs .og-tab{padding:7px 11px}.og-h{display:none}.og-tabs{flex:1}}',
+            '@media (max-width:720px){.og-b{display:block;height:auto;}.og-bi{aspect-ratio:16/9;}.og-bi:after{background:linear-gradient(0deg,#0c1118 0%,rgba(12,17,24,0) 55%);}.og-bt{padding:12px 14px 16px;background:#0c1118;}.og-bp{-webkit-line-clamp:4;}.og-all{padding:6px 6px 6px 12px;font-size:.76rem}}',
             '@media (prefers-reduced-motion:reduce){#owlfin-gp *{animation:none!important;transition:none!important;}}',
             // voce nel menu (client classico)
             '#gb-drawer-section { padding: 0 0 4px 0; }',
@@ -160,7 +155,7 @@
 
     // ── stato ───────────────────────────────────────────────────────
     var page = null, scroller = null, listEl = null;
-    var type = (function () { var v = lsGet(TYPE_KEY); return v === 'Movie' || v === 'Series' ? v : 'All'; })();
+    var type = 'All';   // film e serie insieme
     var blocks = [];
     var seq = 0;
     var pushed = false, pendingThen = null, pendingTimer = 0;
@@ -170,8 +165,13 @@
     function layout() {
         if (!page) return;
         var top = 0, left = 0;
-        var hdr = document.querySelector('.skinHeader, .MuiAppBar-root');
-        if (hdr) { var hr = hdr.getBoundingClientRect(); if (hr.bottom > 0 && hr.bottom < window.innerHeight / 2) top = Math.round(hr.bottom); }
+        // più elementi possono avere queste classi (anche nascosti): vale il più basso fra quelli visibili in alto
+        Array.prototype.forEach.call(document.querySelectorAll('.skinHeader, .MuiAppBar-root, header'), function (h) {
+            if (page.contains(h)) return;
+            var hr = h.getBoundingClientRect();
+            if (hr.height < 1 || hr.top > 8) return;
+            if (hr.bottom > top && hr.bottom < window.innerHeight / 2) top = Math.round(hr.bottom);
+        });
         // drawer fisso a sinistra (desktop): la pagina parte dopo di lui
         var dk = document.querySelector('.MuiDrawer-docked .MuiDrawer-paper');
         if (dk) { var dr = dk.getBoundingClientRect(); if (dr.right > 1 && dr.width < window.innerWidth / 2) left = Math.round(dr.right); }
@@ -217,7 +217,9 @@
     function addBlock(genre, my) {
         var sec = document.createElement('section');
         sec.className = 'og-g';
-        sec.innerHTML = '<h2 class="og-gt">' + esc(genre.Name) + '</h2><div class="og-slot"><div class="og-skel"></div></div>';
+        sec.innerHTML = '<div class="og-gh"><h2 class="og-gt">' + esc(genre.Name) + '</h2>' +
+            '<button type="button" class="og-all" data-act="all" aria-label="' + esc(t.viewAll + ': ' + genre.Name) + '">' + esc(t.viewAll) + chev('r', 18) + '</button></div>' +
+            '<div class="og-slot"><div class="og-skel"></div></div>';
         listEl.appendChild(sec);
         var b = { genre: genre, el: sec, my: my, loaded: false, items: [], idx: 0, visible: false, nextAt: 0, progUntil: 0, scrollT: 0 };
         blocks.push(b);
@@ -251,8 +253,8 @@
     function loadBlock(b) {
         b.loading = true;
         var path = 'Users/' + encodeURIComponent(userId()) + '/Items?Recursive=true&IncludeItemTypes=' + typeParam() +
-            '&Genres=' + encodeURIComponent(b.genre.Name) + '&SortBy=Random&Limit=' + PER_GENRE +
-            '&Fields=Overview&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop&EnableUserData=false';
+            '&Genres=' + encodeURIComponent(b.genre.Name) + '&SortBy=Random' +
+            '&Fields=Overview&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop&EnableUserData=false&EnableTotalRecordCount=false';
         jf(path).then(function (res) {
             b.loading = false; b.loaded = true; active--;
             if (b.my !== seq) { pump(); return; }
@@ -300,8 +302,9 @@
         setActive(b, 0, 'init');
     }
 
-    function chev(d) {
-        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (d === 'l' ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6') + '"/></svg>';
+    function chev(d, sz) {
+        sz = sz || 20;
+        return '<svg width="' + sz + '" height="' + sz + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (d === 'l' ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6') + '"/></svg>';
     }
 
     function setActive(b, i, src) {
@@ -402,23 +405,11 @@
         page.setAttribute('role', 'region');
         page.setAttribute('aria-label', t.title);
         page.innerHTML =
-            '<div class="og-top">' +
-            '<button type="button" class="og-back" data-act="back" aria-label="' + esc(t.back) + '">' + chev('l') + '</button>' +
-            '<div class="og-h">' + esc(t.title) + '</div>' +
-            '<div class="og-tabs"></div></div>' +
             '<div class="og-scroll"><div class="og-list"></div></div>';
         document.body.appendChild(page);
         scroller = page.querySelector('.og-scroll');
         listEl = page.querySelector('.og-list');
         page.addEventListener('click', onClick);
-        renderTabs();
-    }
-
-    function renderTabs() {
-        var el = page.querySelector('.og-tabs');
-        el.innerHTML = [['All', t.all], ['Movie', t.movies], ['Series', t.series]].map(function (x) {
-            return '<button type="button" class="og-tab' + (type === x[0] ? ' on' : '') + '" data-type="' + x[0] + '">' + esc(x[1]) + '</button>';
-        }).join('');
     }
 
     function closeDrawer() {
@@ -442,6 +433,7 @@
             clearInterval(ticker);
             ticker = setInterval(tick, 1000);
             setTimeout(layout, 400);
+            setTimeout(layout, 1500);
             loadGenres();
         }, 250);
     }
@@ -494,22 +486,29 @@
         location.hash = '#/details?id=' + encodeURIComponent(id) + (sid ? '&serverId=' + encodeURIComponent(sid) : '');
     }
 
+    // lista nativa di Jellyfin con tutti i titoli del genere
+    function openGenre(g) {
+        if (!g || !g.Id) return;
+        var sid = serverId();
+        var q = 'list.html?genreId=' + encodeURIComponent(g.Id) + (sid ? '&serverId=' + encodeURIComponent(sid) : '');
+        hidePage();
+        try {
+            if (window.Dashboard && typeof window.Dashboard.navigate === 'function') { window.Dashboard.navigate(q); return; }
+        } catch (e) { /* si ripiega sull'indirizzo */ }
+        location.hash = '#/' + q;
+    }
+
     function onClick(e) {
         var tg = e.target;
         if (!tg || !tg.closest) return;
         var b;
-        if ((b = tg.closest('.og-tab'))) {
-            var ty = b.getAttribute('data-type');
-            if (ty !== type) { type = ty; lsSet(TYPE_KEY, type); renderTabs(); scroller.scrollTop = 0; loadGenres(); }
-            return;
-        }
         if ((b = tg.closest('[data-act]'))) {
             var act = b.getAttribute('data-act');
-            if (act === 'back') return closePage();
             if (act === 'retry') return loadGenres();
             var sec = b.closest('.og-g');
             var blk = sec && sec.__og;
             if (!blk) return;
+            if (act === 'all') return openGenre(blk.genre);
             if (act === 'open') { var it = blk.items[blk.idx]; if (it) openItem(it.Id); return; }
             if (act === 'prev' || act === 'next') {
                 var n = blk.items.length;

@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.14.0.0",
+                "changelog": "1.14.0.0: Sfoglia Generi: ora con tutti i titoli di ogni genere in ordine casuale, pulsante Vedi tutti accanto al genere (apre la lista nativa di Jellyfin), tolta la barra in alto e card del carosello non piu tagliate a sinistra\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.14.0.0.zip",
+                "checksum": "f5fea486db43b77510c3c17aac24ebdd",
+                "timestamp": "2026-10-24T16:13:07Z"
+            },
+            {
                 "version": "1.13.0.0",
                 "changelog": "1.13.0.0: Sfoglia Generi rifatto: pagina a schermo intero con, per ogni genere presente sul server, titolo, banner (75% immagine, 25% trama) e carosello dei titoli che scorre da solo e a mano; il banner cambia insieme al titolo mostrato\n",
                 "targetAbi": "10.11.0.0",
