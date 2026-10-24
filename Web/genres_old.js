@@ -1,0 +1,470 @@
+/**
+ * Genre Browser — Netflix-style genre overlay for Jellyfin
+ *
+ * Parte di Owlfin. Toggle via Configuration.GenresEnabled.
+ *
+ * @version 1.0.0
+ * @license GPL-3.0
+ */
+(function () {
+    // ── i18n ────────────────────────────────────────────────────────
+    const _lang = (navigator.language || 'it').split('-')[0];
+    const _i18n = {
+        it: {
+            nextEpisode:       'Prossimo episodio',
+            nextEpisodes:      'Prossimi episodi',
+            moreUpcoming:      'in arrivo',
+            close:             'Chiudi',
+            seen:              'Visto',
+            episode:           'PUNTATA',
+            markSeasonWatched: 'Segna stagione come vista',
+            season:            'Stagione',
+            chatTitle:         'Chat',
+            chatPlaceholder:   'Scrivi un messaggio...',
+            trendingTitle:     'Di Tendenza Ora',
+            trendingKicker:    'INIZIA A GUARDARE',
+            anchorMovies:      ['Film aggiunti di recente','Film recenti'],
+            continueWatching:  'Prossimo',
+            notAuthenticated:  'Non autenticato',
+            noGenres:          'Nessun genere trovato',
+            movies:            'Film',
+            series:            'Serie TV',
+            film:              'FILM',
+            serieLabel:        'SERIE',
+            loading:           'Caricamento...',
+        },
+        en: {
+            nextEpisode:       'Next episode',
+            nextEpisodes:      'Upcoming episodes',
+            moreUpcoming:      'upcoming',
+            close:             'Close',
+            seen:              'Watched',
+            episode:           'EPISODE',
+            markSeasonWatched: 'Mark season as watched',
+            season:            'Season',
+            chatTitle:         'Chat',
+            chatPlaceholder:   'Write a message...',
+            trendingTitle:     'Trending Now',
+            trendingKicker:    'START WATCHING',
+            anchorMovies:      ['Recently added movies','Recent movies'],
+            continueWatching:  'Next Up',
+            notAuthenticated:  'Not authenticated',
+            noGenres:          'No genres found',
+            movies:            'Movies',
+            series:            'TV Shows',
+            film:              'MOVIE',
+            serieLabel:        'SERIES',
+            loading:           'Loading...',
+        }
+    };
+    const t = _i18n[_lang] || _i18n['en'];
+
+
+    "use strict";
+
+    function getCreds() {
+        try {
+            const c = JSON.parse(localStorage.getItem("jellyfin_credentials") || "{}");
+            const sv = (c.Servers || [])[0] || {};
+            return {
+                token:    sv.AccessToken,
+                userId:   sv.UserId,
+                serverId: sv.Id,
+                base:     (sv.ManualAddress || sv.LocalAddress || location.origin).replace(/\/+$/, "")
+            };
+        } catch { return {}; }
+    }
+
+    function injectCSS() {
+        if (document.getElementById("gb-nf-css")) return;
+        const s = document.createElement("style");
+        s.id = "gb-nf-css";
+        s.textContent = `
+        #gb-nf-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            overflow: hidden;
+        }
+        #gb-nf-overlay.gb-nf-open {
+            display: flex;
+            animation: gb-nf-in 0.22s ease forwards;
+        }
+        @keyframes gb-nf-in { from { opacity: 0; } to { opacity: 1; } }
+
+        #gb-nf-tabs {
+            display: flex;
+            gap: 10px;
+            padding: 18px 20px 10px;
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+        .gb-nf-tab {
+            padding: 6px 18px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: transparent;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .gb-nf-tab:hover { border-color: #fff; color: #fff; }
+        .gb-nf-tab.active { background: #fff; color: #000; border-color: #fff; }
+
+        #gb-nf-list {
+            flex: 1;
+            width: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 0 20px;
+            scrollbar-width: none;
+        }
+        #gb-nf-list::-webkit-scrollbar { display: none; }
+
+        .gb-nf-genre-item {
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            padding: 14px 20px;
+            color: rgba(255,255,255,0.75);
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.12s, transform 0.12s;
+            border: none;
+            background: none;
+        }
+        .gb-nf-genre-item:hover { color: #fff; transform: scale(1.05); }
+        .gb-nf-genre-item.gb-nf-selected { color: #fff; font-weight: 700; }
+
+        #gb-nf-close-wrap {
+            flex-shrink: 0;
+            padding: 16px 0 28px;
+            display: flex;
+            justify-content: center;
+        }
+        #gb-nf-close {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        #gb-nf-close:hover { border-color: #fff; background: rgba(255,255,255,0.2); }
+
+        .gb-nf-spinner {
+            width: 28px; height: 28px;
+            border: 3px solid rgba(255,255,255,0.15);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: gb-nf-spin 0.7s linear infinite;
+            margin: 40px auto;
+        }
+        @keyframes gb-nf-spin { to { transform: rotate(360deg); } }
+        .gb-nf-error { color: rgba(255,255,255,0.5); text-align: center; padding: 40px 20px; font-size: 0.9rem; }
+
+        #gb-drawer-section { padding: 0 0 4px 0; }
+        #gb-drawer-section .gb-section-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.35);
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            padding: 16px 20px 4px;
+            font-family: inherit;
+        }
+        #gb-drawer-btn {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            padding: 0;
+            color: rgba(255,255,255,0.85);
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-size: 1rem;
+            font-family: inherit;
+            font-weight: 400;
+            transition: background 0.15s;
+            letter-spacing: normal;
+        }
+        #gb-drawer-btn:hover { background: rgba(255,255,255,0.05); }
+        #gb-drawer-btn .gb-di {
+            font-family: "Material Icons";
+            font-size: 1.35rem;
+            padding: 10px 16px 10px 20px;
+            color: rgba(255,255,255,0.55);
+            font-weight: normal;
+            font-style: normal;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        #gb-drawer-btn .gb-dt { padding: 10px 0; color: rgba(255,255,255,0.87); font-size: 1rem; }
+        `;
+        document.head.appendChild(s);
+    }
+
+    function closeSidebar() {
+        const mask = document.querySelector(".tmla-mask.backdrop");
+        if (mask) { mask.click(); return; }
+        const drawer = document.querySelector(".mainDrawer");
+        if (drawer) {
+            drawer.classList.remove("drawer-open");
+            drawer.classList.remove("touch-menu-la");
+        }
+    }
+
+    function buildOverlay() {
+        if (document.getElementById("gb-nf-overlay")) return;
+        const overlay = document.createElement("div");
+        overlay.id = "gb-nf-overlay";
+        overlay.innerHTML = `
+            <div id="gb-nf-tabs">
+                <button class="gb-nf-tab active" data-type="All">Tutto</button>
+                <button class="gb-nf-tab" data-type="Movie">${t.movies}</button>
+                <button class="gb-nf-tab" data-type="Series">${t.series}</button>
+            </div>
+            <div id="gb-nf-list"><div class="gb-nf-spinner"></div></div>
+            <div id="gb-nf-close-wrap"><button id="gb-nf-close">✕</button></div>
+        `;
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener("click", e => { if (e.target === overlay) closeOverlay(); });
+        document.getElementById("gb-nf-close").onclick = closeOverlay;
+        document.addEventListener("keydown", e => { if (e.key === "Escape") closeOverlay(); });
+
+        overlay.querySelectorAll(".gb-nf-tab").forEach(tab => {
+            tab.onclick = e => {
+                e.stopPropagation();
+                overlay.querySelectorAll(".gb-nf-tab").forEach(t => t.classList.remove("active"));
+                tab.classList.add("active");
+                loadGenres(tab.dataset.type);
+            };
+        });
+    }
+
+    let _currentType = "All";
+
+    function openOverlay() {
+        injectCSS();
+        buildOverlay();
+        closeSidebar();
+        setTimeout(() => {
+            document.getElementById("gb-nf-overlay").classList.add("gb-nf-open");
+            loadGenres(_currentType);
+        }, 250);
+    }
+
+    function closeOverlay() {
+        const el = document.getElementById("gb-nf-overlay");
+        if (el) el.classList.remove("gb-nf-open");
+    }
+
+    async function loadGenres(mediaType) {
+        _currentType = mediaType;
+        const list = document.getElementById("gb-nf-list");
+        if (!list) return;
+        list.innerHTML = '<div class="gb-nf-spinner"></div>';
+
+        const creds = getCreds();
+        if (!creds.token) {
+            list.innerHTML = `<p class="gb-nf-error">${t.notAuthenticated}</p>`;
+            return;
+        }
+
+        try {
+            let url = `${creds.base}/Genres?userId=${creds.userId}&Recursive=true&SortBy=SortName&SortOrder=Ascending`;
+            if (mediaType === "Movie")       url += "&IncludeItemTypes=Movie";
+            else if (mediaType === "Series") url += "&IncludeItemTypes=Series";
+            else                             url += "&IncludeItemTypes=Movie,Series";
+
+            const r = await fetch(url, {
+                headers: { Authorization: `MediaBrowser Token="${creds.token}"` }
+            });
+            const j = await r.json();
+            const genres = j.Items || [];
+
+            if (!genres.length) {
+                list.innerHTML = `<p class="gb-nf-error">${t.noGenres}</p>`;
+                return;
+            }
+
+            list.innerHTML = "";
+            genres.forEach(genre => {
+                const btn = document.createElement("button");
+                btn.className = "gb-nf-genre-item";
+                btn.textContent = genre.Name;
+                btn.onclick = e => {
+                    e.stopPropagation();
+                    list.querySelectorAll(".gb-nf-genre-item").forEach(b => b.classList.remove("gb-nf-selected"));
+                    btn.classList.add("gb-nf-selected");
+                    setTimeout(() => {
+                        closeOverlay();
+                        let hash = `#!/list.html?genreId=${genre.Id}&serverId=${creds.serverId}`;
+                        if (mediaType === "Movie")       hash += "&type=Movie";
+                        else if (mediaType === "Series") hash += "&type=Series";
+                        location.hash = hash;
+                    }, 180);
+                };
+                list.appendChild(btn);
+            });
+        } catch (e) {
+            list.innerHTML = '<p class="gb-nf-error">Errore nel caricamento</p>';
+        }
+    }
+
+    // Jellyfin 12+ (React/MUI): il drawer usa classi MUI reali generate dal
+    // bundle del client stesso, non da un tema - .MuiDrawer-paper è il pannello,
+    // .MuiListItemButton-root le singole voci, .MuiListSubheader-root le
+    // intestazioni di sezione come "Librerie".
+    // Sezione "Owlfin" nel menu laterale di Jellyfin 12 (MUI): subito dopo Home/Preferiti, con lo stesso
+    // aspetto delle voci native (si clona una voce vera del menu, cosi' prende le classi del client).
+    function owlfinMenuAdd(paper, id, order, icon, label, onClick) {
+        if (document.getElementById(id)) return;
+        var all = Array.prototype.slice.call(paper.querySelectorAll('.MuiListItemButton-root'));
+        var natives = all.filter(function (n) { return !n.closest('[data-owlfin-order]'); });
+        var ref = natives[1] || natives[0] || null;
+        var anchor = ref ? (ref.closest('li') || ref) : null;
+
+        var head = document.getElementById('owlfin-menu-head');
+        if (!head) {
+            var sub = Array.prototype.slice.call(paper.querySelectorAll('.MuiListSubheader-root'))
+                .filter(function (n) { return n.id !== 'owlfin-menu-head' && n.id !== 'gb-mui-subheader'; })[0];
+            head = sub ? sub.cloneNode(false) : document.createElement('div');
+            head.removeAttribute('id');
+            if (!sub) {
+                head.className = 'MuiListSubheader-root';
+                head.style.cssText = 'padding:16px 20px 4px;list-style:none;';
+            }
+            head.id = 'owlfin-menu-head';
+            head.textContent = 'Owlfin';
+            if (anchor) anchor.insertAdjacentElement('afterend', head); else paper.appendChild(head);
+        }
+
+        var unit = null, btn = null;
+        if (ref) {
+            unit = (ref.parentElement && ref.parentElement.tagName === 'LI') ? ref.parentElement : ref;
+            unit = unit.cloneNode(true);
+            btn = unit.matches('.MuiListItemButton-root') ? unit : unit.querySelector('.MuiListItemButton-root');
+        }
+        var textEl = btn && (btn.querySelector('.MuiListItemText-primary') || btn.querySelector('.MuiListItemText-root'));
+        if (!unit || !btn || !textEl) {
+            unit = document.createElement('div');
+            unit.className = 'MuiListItemButton-root';
+            unit.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;width:85%;margin:3px auto;list-style:none;';
+            unit.innerHTML = '<span class="material-icons" style="font-size:1.35rem;opacity:.8;">' + icon + '</span><span>' + String(label).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>';
+            btn = unit;
+        } else {
+            Array.prototype.forEach.call(unit.querySelectorAll('[id]'), function (n) { n.removeAttribute('id'); });
+            btn.removeAttribute('href');
+            btn.removeAttribute('aria-current');
+            btn.classList.remove('Mui-selected', 'active');
+            var ic = btn.querySelector('.MuiListItemIcon-root');
+            var span = '<span class="material-icons" style="font-size:1.5rem;">' + icon + '</span>';
+            if (ic) ic.innerHTML = span; else btn.insertAdjacentHTML('afterbegin', span);
+            textEl.textContent = label;
+        }
+        unit.id = id;
+        unit.setAttribute('data-owlfin-order', String(order));
+        btn.setAttribute('role', 'button');
+        btn.tabIndex = 0;
+        btn.style.cursor = 'pointer';
+        var go = function (ev) { ev.preventDefault(); ev.stopPropagation(); onClick(); };
+        btn.addEventListener('click', go);
+        btn.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') go(ev); });
+
+        var mine = Array.prototype.slice.call(paper.querySelectorAll('[data-owlfin-order]'));
+        var next = mine.filter(function (n) { return Number(n.getAttribute('data-owlfin-order')) > order; })[0];
+        if (next) next.insertAdjacentElement('beforebegin', unit);
+        else (mine[mine.length - 1] || head).insertAdjacentElement('afterend', unit);
+    }
+
+    function injectMuiMenuEntry(muiDrawer) {
+        owlfinMenuAdd(muiDrawer, "gb-mui-drawer-item", 1, "theaters", "Sfoglia Generi", openOverlay);
+    }
+
+    // Client classico (10.11 e precedenti): struttura legacy con .mainDrawer.
+    function injectLegacyMenuEntry(drawer) {
+        if (document.getElementById("gb-drawer-section")) return;
+
+        const homeLink = Array.from(drawer.children).find(el =>
+            el.tagName === "A" && el.textContent.trim().toLowerCase() === "home"
+        );
+        if (!homeLink) return;
+
+        const section = document.createElement("div");
+        section.id = "gb-drawer-section";
+
+        const label = document.createElement("div");
+        label.className = "gb-section-label";
+        label.textContent = "Owlfin";
+
+        const btn = document.createElement("button");
+        btn.id = "gb-drawer-btn";
+        btn.innerHTML = '<span class="gb-di">theaters</span><span class="gb-dt">Sfoglia Generi</span>';
+        btn.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            openOverlay();
+        }, true);
+
+        section.appendChild(label);
+        section.appendChild(btn);
+        drawer.insertBefore(section, homeLink.nextSibling);
+    }
+
+    function injectMenuEntry() {
+        if (document.getElementById("gb-drawer-section") || document.getElementById("gb-mui-drawer-item")) return;
+
+        const muiDrawer = document.querySelector(".MuiDrawer-paper");
+        if (muiDrawer) {
+            injectMuiMenuEntry(muiDrawer);
+            return;
+        }
+
+        const drawer = document.querySelector(".mainDrawer-scrollContainer") ||
+                       document.querySelector(".mainDrawer");
+        if (drawer) injectLegacyMenuEntry(drawer);
+    }
+
+    injectCSS();
+    document.addEventListener("viewshow", () => setTimeout(injectMenuEntry, 400));
+    setTimeout(injectMenuEntry, 1000);
+    setTimeout(injectMenuEntry, 2500);
+    setTimeout(injectMenuEntry, 4000);
+
+    // Il drawer di Jellyfin 12 viene montato/smontato: appena compare lo si riempie.
+    try {
+        var obsT = 0;
+        new MutationObserver(function () { clearTimeout(obsT); obsT = setTimeout(injectMenuEntry, 150); })
+            .observe(document.body, { childList: true });
+    } catch (e) { /* nessun problema: restano i timer */ }
+
+    window.addEventListener("hashchange", e => {
+        if (location.hash.toLowerCase().includes("genrebrowser")) {
+            history.back();
+            setTimeout(openOverlay, 100);
+        }
+    }, true);
+
+})();

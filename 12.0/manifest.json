@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.10.0.0",
+                "changelog": "2.10.0.0: Sfoglia Generi rifatto: pagina a schermo intero con, per ogni genere presente sul server, titolo, banner (75% immagine, 25% trama) e carosello dei titoli che scorre da solo e a mano; il banner cambia insieme al titolo mostrato\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.10.0.0.zip",
+                "checksum": "6f459611ba5232c70289e4099f95d6b1",
+                "timestamp": "2026-10-24T10:54:34Z"
+            },
+            {
                 "version": "2.9.0.0",
                 "changelog": "2.9.0.0: Calendario uscite: calendario a vetro raggiungibile dal menu laterale, con vista Calendario e Agenda, filtro Globali (TMDB) o Richieste (Radarr e Sonarr), locandina, trama e dettagli di ogni uscita. Nuove impostazioni: URL e API key di Radarr, attivazione del calendario\n",
                 "targetAbi": "12.0.0.0",
