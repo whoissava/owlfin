@@ -27,6 +27,7 @@ public class PluginConfiguration : BasePluginConfiguration
         DiscoverEnabled = true;
         SeerrUrl = string.Empty;
         SeerrApiKey = string.Empty;
+        GenresOnHome = false;
         CalendarEnabled = true;
         RadarrUrl = string.Empty;
         RadarrApiKey = string.Empty;
@@ -130,6 +131,13 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets the Seerr API key. Used only server-side by the Seerr proxy controller.
     /// </summary>
     public string SeerrApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the genres sections
+    /// (genres.js) are also shown at the bottom of the home page.
+    /// Restart Jellyfin after changing this.
+    /// </summary>
+    public bool GenresOnHome { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the release calendar

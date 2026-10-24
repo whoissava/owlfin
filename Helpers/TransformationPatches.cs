@@ -45,6 +45,11 @@ public static class TransformationPatches
 
         if (config.GenresEnabled)
         {
+            if (config.GenresOnHome)
+            {
+                scripts += "<script>window.__owlfin_genres_home__=true;</script>";
+            }
+
             scripts += BuildScriptElement("Owlfin-Genres", "Web.genres.js");
         }
 

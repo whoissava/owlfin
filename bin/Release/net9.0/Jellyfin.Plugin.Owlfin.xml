@@ -307,6 +307,13 @@
             Gets or sets the Seerr API key. Used only server-side by the Seerr proxy controller.
             </summary>
         </member>
+        <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.GenresOnHome">
+            <summary>
+            Gets or sets a value indicating whether the genres sections
+            (genres.js) are also shown at the bottom of the home page.
+            Restart Jellyfin after changing this.
+            </summary>
+        </member>
         <member name="P:Jellyfin.Plugin.Owlfin.Configuration.PluginConfiguration.CalendarEnabled">
             <summary>
             Gets or sets a value indicating whether the release calendar

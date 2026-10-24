@@ -4,8 +4,9 @@
  * Per ogni genere presente sul server: titolo, banner (immagine a sinistra, trama a destra)
  * e sotto un carosello dei titoli del genere. Il carosello scorre da solo e a mano, e il banner
  * segue il titolo in primo piano. Toggle via Configuration.GenresEnabled.
+ * Con Configuration.GenresOnHome le stesse sezioni compaiono anche in fondo alla home.
  *
- * @version 2.1.0
+ * @version 2.2.0
  * @license GPL-3.0
  */
 (function () {
@@ -88,11 +89,12 @@
         s.id = 'gb-nf-css';
         s.textContent = [
             // pagina: occupa l'area sotto la barra nativa di Jellyfin
-            '#owlfin-gp{--ac:#22d3ee;--tx:#f3f6fa;--mut:rgba(243,246,250,.62);position:fixed;z-index:1000;display:none;flex-direction:column;color:var(--tx);font-family:inherit;-webkit-tap-highlight-color:transparent;}',
+            '.og-root{--ac:#22d3ee;--tx:#f3f6fa;--mut:rgba(243,246,250,.62);color:var(--tx);font-family:inherit;-webkit-tap-highlight-color:transparent;}',
+            '#owlfin-gp{position:fixed;z-index:1000;display:none;flex-direction:column;}',
             '#owlfin-gp.og-open{display:flex;animation:ogIn .22s ease both;}',
             '@keyframes ogIn{from{opacity:0}to{opacity:1}}',
-            '#owlfin-gp *{box-sizing:border-box;}',
-            ':where(#owlfin-gp) button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;}',
+            '.og-root *{box-sizing:border-box;}',
+            ':where(.og-root) button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;}',
             '.og-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin;}',
             '.og-list{max-width:1500px;margin:0 auto;padding:4px clamp(12px,3vw,40px) 60px;}',
             '.og-g{padding-top:22px;}',
@@ -141,7 +143,11 @@
             '@keyframes ogSp{to{transform:rotate(360deg)}}',
             // telefono: immagine sopra, trama sotto
             '@media (max-width:720px){.og-b{display:block;height:auto;}.og-bi{aspect-ratio:16/9;}.og-bi:after{background:linear-gradient(0deg,#0c1118 0%,rgba(12,17,24,0) 55%);}.og-bt{padding:12px 14px 16px;background:#0c1118;}.og-bp{-webkit-line-clamp:4;}.og-all{padding:6px 6px 6px 12px;font-size:.76rem}}',
-            '@media (prefers-reduced-motion:reduce){#owlfin-gp *{animation:none!important;transition:none!important;}}',
+            '@media (prefers-reduced-motion:reduce){.og-root *{animation:none!important;transition:none!important;}}',
+            // sezione in fondo alla home
+            '.og-home{box-sizing:border-box;display:block;width:100%;padding:26px clamp(12px,3.3vw,44px) 56px;}',
+            '.og-home .og-list{max-width:none;margin:0;padding:0;}',
+            '.og-hh{margin:0 0 2px;font-size:clamp(1.15rem,2.4vw,1.5rem);font-weight:700;line-height:1.2;}',
             // voce nel menu (client classico)
             '#gb-drawer-section { padding: 0 0 4px 0; }',
             '#gb-drawer-section .gb-section-label { font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.35); letter-spacing: 1.2px; text-transform: uppercase; padding: 16px 20px 4px; font-family: inherit; }',
@@ -154,14 +160,15 @@
     }
 
     // ── stato ───────────────────────────────────────────────────────
-    var page = null, scroller = null, listEl = null;
+    var HOME = window.__owlfin_genres_home__ === true;   // impostazione "generi in fondo alla home"
+    var page = null, view = null;
     var type = 'All';   // film e serie insieme
-    var blocks = [];
-    var seq = 0;
+    var views = [];     // tutte le viste vive: pagina intera e sezione in home
     var pushed = false, pendingThen = null, pendingTimer = 0;
-    var io = null, queue = [], active = 0, ticker = 0;
 
-    // ── posizione sotto l'header nativo ─────────────────────────────
+    function typeParam() { return type === 'Movie' ? 'Movie' : type === 'Series' ? 'Series' : 'Movie,Series'; }
+
+    // ── posizione sotto l'header nativo (pagina intera) ─────────────
     function layout() {
         if (!page) return;
         var top = 0, left = 0;
@@ -185,121 +192,252 @@
         page.style.background = bg;
     }
 
-    // ── caricamento ─────────────────────────────────────────────────
-    function typeParam() { return type === 'Movie' ? 'Movie' : type === 'Series' ? 'Series' : 'Movie,Series'; }
+    // ── vista: generi con banner e carosello ────────────────────────
+    // host = elemento che contiene i generi; root = contenitore che scorre (null = la finestra);
+    // isOn() = la vista e' visibile e va fatta scorrere da sola.
+    function makeView(host, root, isOn) {
+        var v = { host: host, isOn: isOn, onEmpty: null };
+        var blocks = [], seq = 0, io = null, queue = [], active = 0;
 
-    function setMsg(html) { listEl.innerHTML = html; }
+        function setMsg(html) { host.innerHTML = html; }
 
-    function loadGenres() {
-        var my = ++seq;
-        teardownBlocks();
-        setMsg('<div class="og-spin"></div>');
-        jf('Genres?userId=' + encodeURIComponent(userId()) + '&Recursive=true&SortBy=SortName&SortOrder=Ascending&IncludeItemTypes=' + typeParam())
-            .then(function (j) {
-                if (my !== seq) return;
-                var genres = (j && j.Items) || [];
-                if (!genres.length) { setMsg('<div class="og-msg">' + esc(t.noGenres) + '</div>'); return; }
-                listEl.innerHTML = '';
-                genres.forEach(function (g) { addBlock(g, my); });
-            }, function (err) {
-                if (my !== seq) return;
-                var auth = err && err.message === 'auth';
-                setMsg('<div class="og-msg">' + esc(auth ? t.notAuth : t.error) + (auth ? '' : '<br><button type="button" data-act="retry">' + esc(t.retry) + '</button>') + '</div>');
-            });
-    }
-
-    function teardownBlocks() {
-        if (io) { io.disconnect(); io = null; }
-        queue = []; active = 0;
-        blocks = [];
-    }
-
-    function addBlock(genre, my) {
-        var sec = document.createElement('section');
-        sec.className = 'og-g';
-        sec.innerHTML = '<div class="og-gh"><h2 class="og-gt">' + esc(genre.Name) + '</h2>' +
-            '<button type="button" class="og-all" data-act="all" aria-label="' + esc(t.viewAll + ': ' + genre.Name) + '">' + esc(t.viewAll) + chev('r', 18) + '</button></div>' +
-            '<div class="og-slot"><div class="og-skel"></div></div>';
-        listEl.appendChild(sec);
-        var b = { genre: genre, el: sec, my: my, loaded: false, items: [], idx: 0, visible: false, nextAt: 0, progUntil: 0, scrollT: 0 };
-        blocks.push(b);
-        observe(b);
-    }
-
-    function observe(b) {
-        if (!io) {
-            io = new IntersectionObserver(function (entries) {
-                entries.forEach(function (en) {
-                    var bb = en.target.__og;
-                    if (!bb) return;
-                    bb.visible = en.isIntersecting;
-                    if (en.isIntersecting && !bb.loaded && !bb.loading) { queue.push(bb); pump(); }
+        function load() {
+            var my = ++seq;
+            teardownBlocks();
+            setMsg('<div class="og-spin"></div>');
+            jf('Genres?userId=' + encodeURIComponent(userId()) + '&Recursive=true&SortBy=SortName&SortOrder=Ascending&IncludeItemTypes=' + typeParam())
+                .then(function (j) {
+                    if (my !== seq) return;
+                    var genres = (j && j.Items) || [];
+                    if (!genres.length) { empty(); return; }
+                    host.innerHTML = '';
+                    genres.forEach(function (g) { addBlock(g, my); });
+                }, function (err) {
+                    if (my !== seq) return;
+                    var auth = err && err.message === 'auth';
+                    setMsg('<div class="og-msg">' + esc(auth ? t.notAuth : t.error) + (auth ? '' : '<br><button type="button" data-act="retry">' + esc(t.retry) + '</button>') + '</div>');
                 });
-            }, { root: scroller, rootMargin: '600px 0px', threshold: 0 });
         }
-        b.el.__og = b;
-        io.observe(b.el);
-    }
 
-    function pump() {
-        while (active < 2 && queue.length) {
-            var b = queue.shift();
-            if (b.my !== seq || b.loaded) continue;
-            active++;
-            loadBlock(b);
+        function empty() {
+            if (v.onEmpty) v.onEmpty(); else setMsg('<div class="og-msg">' + esc(t.noGenres) + '</div>');
         }
-    }
 
-    function loadBlock(b) {
-        b.loading = true;
-        var path = 'Users/' + encodeURIComponent(userId()) + '/Items?Recursive=true&IncludeItemTypes=' + typeParam() +
-            '&Genres=' + encodeURIComponent(b.genre.Name) + '&SortBy=Random' +
-            '&Fields=Overview&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop&EnableUserData=false&EnableTotalRecordCount=false';
-        jf(path).then(function (res) {
-            b.loading = false; b.loaded = true; active--;
-            if (b.my !== seq) { pump(); return; }
-            b.items = ((res && res.Items) || []).filter(function (it) { return (it.ImageTags && it.ImageTags.Primary) || (it.BackdropImageTags && it.BackdropImageTags.length); });
-            if (b.items.length < 2) { removeBlock(b); } else renderBlock(b);
-            pump();
-        }, function () {
-            b.loading = false; b.loaded = true; active--;
-            if (b.my === seq) removeBlock(b);
-            pump();
-        });
-    }
+        function teardownBlocks() {
+            if (io) { io.disconnect(); io = null; }
+            queue = []; active = 0;
+            blocks = [];
+        }
 
-    function removeBlock(b) {
-        if (io) io.unobserve(b.el);
-        if (b.el.parentNode) b.el.parentNode.removeChild(b.el);
-        blocks = blocks.filter(function (x) { return x !== b; });
-        if (!blocks.length && listEl && !listEl.children.length) setMsg('<div class="og-msg">' + esc(t.noGenres) + '</div>');
-    }
+        function addBlock(genre, my) {
+            var sec = document.createElement('section');
+            sec.className = 'og-g';
+            sec.innerHTML = '<div class="og-gh"><h2 class="og-gt">' + esc(genre.Name) + '</h2>' +
+                '<button type="button" class="og-all" data-act="all" aria-label="' + esc(t.viewAll + ': ' + genre.Name) + '">' + esc(t.viewAll) + chev('r', 18) + '</button></div>' +
+                '<div class="og-slot"><div class="og-skel"></div></div>';
+            host.appendChild(sec);
+            var b = { genre: genre, el: sec, my: my, loaded: false, items: [], idx: 0, visible: false, nextAt: 0, progUntil: 0, scrollT: 0 };
+            blocks.push(b);
+            observe(b);
+        }
 
-    // ── blocco di un genere ─────────────────────────────────────────
-    function renderBlock(b) {
-        var cards = b.items.map(function (it, i) {
-            var src = posterUrl(it);
-            return '<button type="button" class="og-c" data-i="' + i + '" aria-label="' + esc(it.Name) + '">' +
-                '<span class="og-p">' + (src ? '<img src="' + esc(src) + '" alt="" loading="lazy" decoding="async">' : '') + '</span>' +
-                '<span class="og-ct">' + esc(it.Name) + '</span></button>';
-        }).join('');
-        b.el.querySelector('.og-slot').innerHTML =
-            '<div class="og-b">' +
-            '<div class="og-bi" data-act="open"><div class="og-bl"></div><div class="og-bl"></div><span class="og-count"></span></div>' +
-            '<div class="og-bt"></div></div>' +
-            '<div class="og-railw"><button type="button" class="og-arr l" data-act="prev" aria-label="' + esc(t.prev) + '">' + chev('l') + '</button>' +
-            '<div class="og-rail">' + cards + '</div>' +
-            '<button type="button" class="og-arr r" data-act="next" aria-label="' + esc(t.next) + '">' + chev('r') + '</button></div>';
-        b.rail = b.el.querySelector('.og-rail');
-        b.cards = Array.prototype.slice.call(b.el.querySelectorAll('.og-c'));
-        b.layers = b.el.querySelectorAll('.og-bl');
-        b.layer = 0;
-        b.nextAt = Date.now() + AUTO_MS + Math.random() * 1500;
-        b.rail.addEventListener('scroll', function () { onRailScroll(b); }, { passive: true });
-        ['touchstart', 'pointerdown', 'wheel'].forEach(function (ev) {
-            b.rail.addEventListener(ev, function () { b.nextAt = Date.now() + IDLE_MS; }, { passive: true });
-        });
-        setActive(b, 0, 'init');
+        function observe(b) {
+            if (!io) {
+                io = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (en) {
+                        var bb = en.target.__og;
+                        if (!bb) return;
+                        bb.visible = en.isIntersecting;
+                        if (en.isIntersecting && !bb.loaded && !bb.loading) { queue.push(bb); pump(); }
+                    });
+                }, { root: root, rootMargin: '600px 0px', threshold: 0 });
+            }
+            b.el.__og = b;
+            io.observe(b.el);
+        }
+
+        function pump() {
+            while (active < 2 && queue.length) {
+                var b = queue.shift();
+                if (b.my !== seq || b.loaded) continue;
+                active++;
+                loadBlock(b);
+            }
+        }
+
+        function loadBlock(b) {
+            b.loading = true;
+            var path = 'Users/' + encodeURIComponent(userId()) + '/Items?Recursive=true&IncludeItemTypes=' + typeParam() +
+                '&Genres=' + encodeURIComponent(b.genre.Name) + '&SortBy=Random' +
+                '&Fields=Overview&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop&EnableUserData=false&EnableTotalRecordCount=false';
+            jf(path).then(function (res) {
+                b.loading = false; b.loaded = true; active--;
+                if (b.my !== seq) { pump(); return; }
+                b.items = ((res && res.Items) || []).filter(function (it) { return (it.ImageTags && it.ImageTags.Primary) || (it.BackdropImageTags && it.BackdropImageTags.length); });
+                if (b.items.length < 2) { removeBlock(b); } else renderBlock(b);
+                pump();
+            }, function () {
+                b.loading = false; b.loaded = true; active--;
+                if (b.my === seq) removeBlock(b);
+                pump();
+            });
+        }
+
+        function removeBlock(b) {
+            if (io) io.unobserve(b.el);
+            if (b.el.parentNode) b.el.parentNode.removeChild(b.el);
+            blocks = blocks.filter(function (x) { return x !== b; });
+            if (!blocks.length && !host.children.length) empty();
+        }
+
+        // ── blocco di un genere ─────────────────────────────────────
+        function renderBlock(b) {
+            var cards = b.items.map(function (it, i) {
+                var src = posterUrl(it);
+                return '<button type="button" class="og-c" data-i="' + i + '" aria-label="' + esc(it.Name) + '">' +
+                    '<span class="og-p">' + (src ? '<img src="' + esc(src) + '" alt="" loading="lazy" decoding="async">' : '') + '</span>' +
+                    '<span class="og-ct">' + esc(it.Name) + '</span></button>';
+            }).join('');
+            b.el.querySelector('.og-slot').innerHTML =
+                '<div class="og-b">' +
+                '<div class="og-bi" data-act="open"><div class="og-bl"></div><div class="og-bl"></div><span class="og-count"></span></div>' +
+                '<div class="og-bt"></div></div>' +
+                '<div class="og-railw"><button type="button" class="og-arr l" data-act="prev" aria-label="' + esc(t.prev) + '">' + chev('l') + '</button>' +
+                '<div class="og-rail">' + cards + '</div>' +
+                '<button type="button" class="og-arr r" data-act="next" aria-label="' + esc(t.next) + '">' + chev('r') + '</button></div>';
+            b.rail = b.el.querySelector('.og-rail');
+            b.cards = Array.prototype.slice.call(b.el.querySelectorAll('.og-c'));
+            b.layers = b.el.querySelectorAll('.og-bl');
+            b.layer = 0;
+            b.nextAt = Date.now() + AUTO_MS + Math.random() * 1500;
+            b.rail.addEventListener('scroll', function () { onRailScroll(b); }, { passive: true });
+            ['touchstart', 'pointerdown', 'wheel'].forEach(function (ev) {
+                b.rail.addEventListener(ev, function () { b.nextAt = Date.now() + IDLE_MS; }, { passive: true });
+            });
+            // il tocco orizzontale resta al carosello e non arriva alla pagina (gesti dell'app)
+            ['touchstart', 'touchmove'].forEach(function (ev) {
+                b.rail.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true });
+            });
+            setActive(b, 0, 'init');
+        }
+
+        function setActive(b, i, src) {
+            i = Math.max(0, Math.min(b.items.length - 1, i));
+            var changed = i !== b.idx || src === 'init';
+            b.idx = i;
+            b.cards.forEach(function (c, k) { c.classList.toggle('on', k === i); });
+            if (changed) renderBanner(b, b.items[i], src === 'init');
+            var cnt = b.el.querySelector('.og-count');
+            if (cnt) cnt.textContent = (i + 1) + ' / ' + b.items.length;
+            if (src === 'auto' || src === 'step') scrollRailTo(b, i);
+        }
+
+        function renderBanner(b, it, instant) {
+            var txt = b.el.querySelector('.og-bt');
+            var url = backdropUrl(it);
+            // immagine: dissolvenza fra due strati
+            if (url) {
+                var img = new Image();
+                img.onload = function () {
+                    if (b.items[b.idx] !== it) return;
+                    var next = b.layers[1 - b.layer], prev = b.layers[b.layer];
+                    next.style.backgroundImage = 'url("' + url.replace(/"/g, '%22') + '")';
+                    next.classList.add('on');
+                    prev.classList.remove('on');
+                    b.layer = 1 - b.layer;
+                };
+                img.src = url;
+            } else {
+                b.layers[0].classList.remove('on'); b.layers[1].classList.remove('on');
+            }
+            var fill = function () {
+                var meta = [];
+                if (it.ProductionYear) meta.push('<span>' + esc(it.ProductionYear) + '</span>');
+                if (it.CommunityRating) meta.push('<span class="og-star">★ ' + esc(Number(it.CommunityRating).toFixed(1)) + '</span>');
+                var rt = fmtRuntime(it.RunTimeTicks);
+                if (rt) meta.push('<span>' + esc(rt) + '</span>');
+                txt.innerHTML =
+                    '<div class="og-chips"><span class="og-chip">' + esc(it.Type === 'Series' ? t.serie : t.film) + '</span>' +
+                    (it.OfficialRating ? '<span class="og-chip n">' + esc(it.OfficialRating) + '</span>' : '') + '</div>' +
+                    '<h3 class="og-bn">' + esc(it.Name) + '</h3>' +
+                    (meta.length ? '<div class="og-bm">' + meta.join('') + '</div>' : '') +
+                    (it.Overview ? '<p class="og-bp">' + esc(it.Overview) + '</p>' : '') +
+                    '<button type="button" class="og-open-btn" data-act="open">' + esc(t.details) + '</button>';
+                txt.classList.remove('fade');
+            };
+            if (instant || reduced()) { fill(); return; }
+            txt.classList.add('fade');
+            setTimeout(function () { if (b.items[b.idx] === it) fill(); }, 200);
+        }
+
+        function stepOf(b) {
+            if (b.cards.length > 1) return b.cards[1].offsetLeft - b.cards[0].offsetLeft;
+            return b.cards[0] ? b.cards[0].offsetWidth : 1;
+        }
+
+        function scrollRailTo(b, i) {
+            if (!b.cards[i]) return;
+            b.progUntil = Date.now() + 900;
+            var left = b.cards[i].offsetLeft - b.cards[0].offsetLeft;
+            try { b.rail.scrollTo({ left: left, behavior: reduced() ? 'auto' : 'smooth' }); } catch (e) { b.rail.scrollLeft = left; }
+        }
+
+        function onRailScroll(b) {
+            if (Date.now() < b.progUntil) return;
+            clearTimeout(b.scrollT);
+            b.scrollT = setTimeout(function () {
+                var step = stepOf(b) || 1;
+                var max = b.rail.scrollWidth - b.rail.clientWidth;
+                var i = b.rail.scrollLeft >= max - 2 ? b.items.length - 1 : Math.round(b.rail.scrollLeft / step);
+                b.nextAt = Date.now() + IDLE_MS;
+                if (i !== b.idx) setActive(b, i, 'manual');
+            }, 90);
+        }
+
+        // scorrimento automatico dei caroselli visibili di questa vista
+        v.tick = function (now) {
+            if (document.visibilityState === 'hidden') return;
+            var vr = root ? root.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+            blocks.forEach(function (b) {
+                if (!b.rail || !b.items.length) return;
+                var r = b.el.getBoundingClientRect();
+                var vis = r.bottom > vr.top + 60 && r.top < vr.bottom - 60;
+                if (!vis || now < b.nextAt) return;
+                b.nextAt = now + AUTO_MS;
+                setActive(b, (b.idx + 1) % b.items.length, 'auto');
+            });
+        };
+
+        v.click = function (e) {
+            var tg = e.target;
+            if (!tg || !tg.closest) return;
+            var b;
+            if ((b = tg.closest('[data-act]'))) {
+                var act = b.getAttribute('data-act');
+                if (act === 'retry') return load();
+                var sec = b.closest('.og-g');
+                var blk = sec && sec.__og;
+                if (!blk) return;
+                if (act === 'all') return openGenre(blk.genre);
+                if (act === 'open') { var it = blk.items[blk.idx]; if (it) openItem(it.Id); return; }
+                if (act === 'prev' || act === 'next') {
+                    var n = blk.items.length;
+                    blk.nextAt = Date.now() + IDLE_MS;
+                    setActive(blk, act === 'next' ? Math.min(n - 1, blk.idx + 1) : Math.max(0, blk.idx - 1), 'step');
+                    return;
+                }
+            }
+            if ((b = tg.closest('.og-c'))) {
+                var sec2 = b.closest('.og-g'), blk2 = sec2 && sec2.__og;
+                var it2 = blk2 && blk2.items[+b.getAttribute('data-i')];
+                if (it2) openItem(it2.Id);
+            }
+        };
+
+        v.load = load;
+        v.teardown = function () { seq++; teardownBlocks(); };
+        views.push(v);
+        return v;
     }
 
     function chev(d, sz) {
@@ -307,109 +445,41 @@
         return '<svg width="' + sz + '" height="' + sz + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (d === 'l' ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6') + '"/></svg>';
     }
 
-    function setActive(b, i, src) {
-        i = Math.max(0, Math.min(b.items.length - 1, i));
-        var changed = i !== b.idx || src === 'init';
-        b.idx = i;
-        b.cards.forEach(function (c, k) { c.classList.toggle('on', k === i); });
-        if (changed) renderBanner(b, b.items[i], src === 'init');
-        var cnt = b.el.querySelector('.og-count');
-        if (cnt) cnt.textContent = (i + 1) + ' / ' + b.items.length;
-        if (src === 'auto' || src === 'step') scrollRailTo(b, i);
+    function dropView(v) {
+        if (!v) return;
+        v.teardown();
+        views = views.filter(function (x) { return x !== v; });
     }
 
-    function renderBanner(b, it, instant) {
-        var txt = b.el.querySelector('.og-bt');
-        var url = backdropUrl(it);
-        // immagine: dissolvenza fra due strati
-        if (url) {
-            var img = new Image();
-            img.onload = function () {
-                if (b.items[b.idx] !== it) return;
-                var next = b.layers[1 - b.layer], prev = b.layers[b.layer];
-                next.style.backgroundImage = 'url("' + url.replace(/"/g, '%22') + '")';
-                next.classList.add('on');
-                prev.classList.remove('on');
-                b.layer = 1 - b.layer;
-            };
-            img.src = url;
-        } else {
-            b.layers[0].classList.remove('on'); b.layers[1].classList.remove('on');
-        }
-        var fill = function () {
-            var meta = [];
-            if (it.ProductionYear) meta.push('<span>' + esc(it.ProductionYear) + '</span>');
-            if (it.CommunityRating) meta.push('<span class="og-star">★ ' + esc(Number(it.CommunityRating).toFixed(1)) + '</span>');
-            var rt = fmtRuntime(it.RunTimeTicks);
-            if (rt) meta.push('<span>' + esc(rt) + '</span>');
-            txt.innerHTML =
-                '<div class="og-chips"><span class="og-chip">' + esc(it.Type === 'Series' ? t.serie : t.film) + '</span>' +
-                (it.OfficialRating ? '<span class="og-chip n">' + esc(it.OfficialRating) + '</span>' : '') + '</div>' +
-                '<h3 class="og-bn">' + esc(it.Name) + '</h3>' +
-                (meta.length ? '<div class="og-bm">' + meta.join('') + '</div>' : '') +
-                (it.Overview ? '<p class="og-bp">' + esc(it.Overview) + '</p>' : '') +
-                '<button type="button" class="og-open-btn" data-act="open">' + esc(t.details) + '</button>';
-            txt.classList.remove('fade');
-        };
-        if (instant || reduced()) { fill(); return; }
-        txt.classList.add('fade');
-        setTimeout(function () { if (b.items[b.idx] === it) fill(); }, 200);
-    }
-
-    function stepOf(b) {
-        if (b.cards.length > 1) return b.cards[1].offsetLeft - b.cards[0].offsetLeft;
-        return b.cards[0] ? b.cards[0].offsetWidth : 1;
-    }
-
-    function scrollRailTo(b, i) {
-        if (!b.cards[i]) return;
-        b.progUntil = Date.now() + 900;
-        var left = b.cards[i].offsetLeft - b.cards[0].offsetLeft;
-        try { b.rail.scrollTo({ left: left, behavior: reduced() ? 'auto' : 'smooth' }); } catch (e) { b.rail.scrollLeft = left; }
-    }
-
-    function onRailScroll(b) {
-        if (Date.now() < b.progUntil) return;
-        clearTimeout(b.scrollT);
-        b.scrollT = setTimeout(function () {
-            var step = stepOf(b) || 1;
-            var max = b.rail.scrollWidth - b.rail.clientWidth;
-            var i = b.rail.scrollLeft >= max - 2 ? b.items.length - 1 : Math.round(b.rail.scrollLeft / step);
-            b.nextAt = Date.now() + IDLE_MS;
-            if (i !== b.idx) setActive(b, i, 'manual');
-        }, 90);
-    }
-
-    // scorrimento automatico: un solo ciclo per tutti i caroselli visibili
-    function tick() {
-        if (!page || !page.classList.contains('og-open') || document.visibilityState === 'hidden') return;
-        var now = Date.now();
-        var vr = scroller.getBoundingClientRect();
-        blocks.forEach(function (b) {
-            if (!b.rail || !b.items.length) return;
-            var r = b.el.getBoundingClientRect();
-            var vis = r.bottom > vr.top + 60 && r.top < vr.bottom - 60;
-            if (!vis || now < b.nextAt) return;
-            b.nextAt = now + AUTO_MS;
-            setActive(b, (b.idx + 1) % b.items.length, 'auto');
+    // un solo ciclo per tutte le viste: scarta quelle sparite dal DOM, fa scorrere quelle visibili
+    function globalTick() {
+        views = views.filter(function (v) {
+            if (v.host.isConnected) return true;
+            v.teardown();
+            return false;
         });
+        var now = Date.now();
+        views.forEach(function (v) { if (v.isOn()) v.tick(now); });
     }
+    setInterval(globalTick, 1000);
 
-    // ── apertura / chiusura ─────────────────────────────────────────
+    // ── apertura / chiusura (pagina intera) ─────────────────────────
+    function pageOn() { return !!(page && page.classList.contains('og-open')); }
+
     function buildPage() {
         var old = document.getElementById(PAGE_ID);
         if (old) old.remove();
-        teardownBlocks();
+        dropView(view);
         page = document.createElement('div');
         page.id = PAGE_ID;
+        page.className = 'og-root';
         page.setAttribute('role', 'region');
         page.setAttribute('aria-label', t.title);
         page.innerHTML =
             '<div class="og-scroll"><div class="og-list"></div></div>';
         document.body.appendChild(page);
-        scroller = page.querySelector('.og-scroll');
-        listEl = page.querySelector('.og-list');
-        page.addEventListener('click', onClick);
+        view = makeView(page.querySelector('.og-list'), page.querySelector('.og-scroll'), pageOn);
+        page.addEventListener('click', function (e) { view.click(e); });
     }
 
     function closeDrawer() {
@@ -430,11 +500,9 @@
             page.classList.add('og-open');
             try { history.pushState({ owlfinGenres: true }, '', location.href); pushed = true; } catch (e) { pushed = false; }
             document.addEventListener('keydown', onKey, true);
-            clearInterval(ticker);
-            ticker = setInterval(tick, 1000);
             setTimeout(layout, 400);
             setTimeout(layout, 1500);
-            loadGenres();
+            view.load();
         }, 250);
     }
 
@@ -443,8 +511,6 @@
         layout();
         page.classList.add('og-open');
         document.addEventListener('keydown', onKey, true);
-        clearInterval(ticker);
-        ticker = setInterval(tick, 1000);
     }
 
     // nasconde la pagina senza toccare la cronologia (si puo' riaprire con "indietro")
@@ -452,12 +518,11 @@
         if (!page) return;
         page.classList.remove('og-open');
         document.removeEventListener('keydown', onKey, true);
-        clearInterval(ticker);
     }
 
     // chiusura voluta dall'utente: toglie la voce di cronologia che abbiamo aggiunto
     function closePage(then) {
-        if (!page || !page.classList.contains('og-open')) { if (typeof then === 'function') then(); return; }
+        if (!pageOn()) { if (typeof then === 'function') then(); return; }
         if (pushed && history.state && history.state.owlfinGenres) {
             pushed = false;
             pendingThen = typeof then === 'function' ? then : null;
@@ -498,30 +563,59 @@
         location.hash = '#/' + q;
     }
 
-    function onClick(e) {
-        var tg = e.target;
-        if (!tg || !tg.closest) return;
-        var b;
-        if ((b = tg.closest('[data-act]'))) {
-            var act = b.getAttribute('data-act');
-            if (act === 'retry') return loadGenres();
-            var sec = b.closest('.og-g');
-            var blk = sec && sec.__og;
-            if (!blk) return;
-            if (act === 'all') return openGenre(blk.genre);
-            if (act === 'open') { var it = blk.items[blk.idx]; if (it) openItem(it.Id); return; }
-            if (act === 'prev' || act === 'next') {
-                var n = blk.items.length;
-                blk.nextAt = Date.now() + IDLE_MS;
-                setActive(blk, act === 'next' ? Math.min(n - 1, blk.idx + 1) : Math.max(0, blk.idx - 1), 'step');
-                return;
-            }
+    // ── in fondo alla home (impostazione del plugin) ────────────────
+    function onHomeRoute() {
+        var h = location.hash.toLowerCase();
+        return h === '' || h === '#' || h.indexOf('#/home') === 0 || h.indexOf('#!/home') === 0;
+    }
+
+    // la home visibile: le vecchie restano nel DOM, nascoste
+    function visibleHome() {
+        var all = document.querySelectorAll('.homeSectionsContainer');
+        for (var i = all.length - 1; i >= 0; i--) {
+            var c = all[i];
+            if (c.closest('.hide, [hidden]')) continue;
+            if (c.getClientRects().length > 0) return c;
         }
-        if ((b = tg.closest('.og-c'))) {
-            var sec2 = b.closest('.og-g'), blk2 = sec2 && sec2.__og;
-            var it2 = blk2 && blk2.items[+b.getAttribute('data-i')];
-            if (it2) openItem(it2.Id);
+        return null;
+    }
+
+    var homeMoves = 0, homeMovesFor = null;
+    function mountHome() {
+        if (!HOME || !onHomeRoute()) return;
+        var home = visibleHome();
+        if (!home || home.__ogOff || !home.querySelector('.verticalSection')) return;
+        var sec = home.querySelector('.og-home');
+        if (!sec) {
+            // le sezioni rimaste in altre home (nascoste) si buttano via
+            Array.prototype.forEach.call(document.querySelectorAll('.og-home'), function (o) { if (o.parentNode) o.parentNode.removeChild(o); });
+            injectCSS();
+            sec = document.createElement('section');
+            sec.id = 'owlfin-gh';
+            sec.className = 'og-root og-home';
+            sec.innerHTML = '<h2 class="og-hh">' + esc(t.title) + '</h2><div class="og-list"></div>';
+            home.appendChild(sec);
+            var hv = makeView(sec.querySelector('.og-list'), null, function () {
+                return !pageOn() && sec.getClientRects().length > 0 && !sec.closest('.hide, [hidden]');
+            });
+            // nessun genere o nessun titolo: la sezione sparisce e questa home non viene piu' riprovata
+            hv.onEmpty = function () { home.__ogOff = true; if (sec.parentNode) sec.parentNode.removeChild(sec); };
+            sec.addEventListener('click', hv.click);
+            hv.load();
+            return;
         }
+        // deve restare l'ultimo elemento della home (altre righe arrivano a pezzi)
+        if (home.lastElementChild !== sec) {
+            if (homeMovesFor !== home) { homeMovesFor = home; homeMoves = 0; }
+            if (homeMoves < 40) { homeMoves++; home.appendChild(sec); }
+        }
+    }
+
+    if (HOME) {
+        setInterval(mountHome, 1500);
+        window.addEventListener('hashchange', function () { setTimeout(mountHome, 400); });
+        document.addEventListener('viewshow', function () { setTimeout(mountHome, 600); });
+        setTimeout(mountHome, 1200);
     }
 
     // cronologia: "indietro" nasconde, "avanti/indietro" da Dettagli la ripristina

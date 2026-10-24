@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.12.0.0",
+                "changelog": "2.12.0.0: Sfoglia Generi anche in fondo alla Home: nuova impostazione 'Generi in fondo alla Home' (richiede riavvio di Jellyfin); la sezione e' sempre l'ultimo elemento della Home\n",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/12.0/owlfin/owlfin_2.12.0.0.zip",
+                "checksum": "6a2d5ed8ec5622779e55b2c751f4522c",
+                "timestamp": "2026-10-24T21:42:06Z"
+            },
+            {
                 "version": "2.11.0.0",
                 "changelog": "2.11.0.0: Sfoglia Generi: ora con tutti i titoli di ogni genere in ordine casuale, pulsante Vedi tutti accanto al genere (apre la lista nativa di Jellyfin), tolta la barra in alto e card del carosello non piu tagliate a sinistra\n",
                 "targetAbi": "12.0.0.0",
