@@ -6,7 +6,7 @@
  * segue il titolo in primo piano. Toggle via Configuration.GenresEnabled.
  * Con Configuration.GenresOnHome le stesse sezioni compaiono anche in fondo alla home.
  *
- * @version 2.2.0
+ * @version 2.3.0
  * @license GPL-3.0
  */
 (function () {
@@ -26,6 +26,51 @@
               notAuth: 'Not authenticated', prev: 'Previous', next: 'Next' }
     };
     var t = I18N[LANG] || I18N.en;
+
+    // Nomi dei generi in italiano: i generi inglesi (es. "Action") si uniscono a quelli italiani ("Azione")
+    var GENRE_IT = {
+        'action': 'Azione', 'adventure': 'Avventura', 'animation': 'Animazione', 'comedy': 'Commedia', 'crime': 'Crime',
+        'documentary': 'Documentario', 'documentaries': 'Documentario', 'documentari': 'Documentario',
+        'drama': 'Dramma', 'drammatico': 'Dramma', 'family': 'Famiglia', 'fantasy': 'Fantasy', 'history': 'Storia', 'historical': 'Storia',
+        'horror': 'Horror', 'music': 'Musica', 'musical': 'Musical', 'mystery': 'Mistero', 'romance': 'Romantico', 'romantic': 'Romantico',
+        'science fiction': 'Fantascienza', 'sci-fi': 'Fantascienza', 'scifi': 'Fantascienza', 'tv movie': 'Film TV',
+        'thriller': 'Thriller', 'war': 'Guerra', 'western': 'Western', 'biography': 'Biografico', 'film-noir': 'Noir', 'film noir': 'Noir',
+        'sport': 'Sport', 'short': 'Cortometraggio', 'reality': 'Reality', 'reality-tv': 'Reality', 'talk': 'Talk show', 'talk-show': 'Talk show',
+        'game-show': 'Game show', 'news': 'Notizie', 'soap': 'Soap opera', 'kids': 'Bambini', 'children': 'Bambini',
+        'action & adventure': 'Azione e Avventura', 'sci-fi & fantasy': 'Fantascienza e Fantasy', 'war & politics': 'Guerra e Politica'
+    };
+
+    // raggruppa i generi per nome italiano: { Id, Name (italiano), names: [nomi reali sul server] }
+    function groupGenres(list) {
+        if (LANG !== 'it') {
+            return list.map(function (g) { return { Id: g.Id, Name: g.Name, names: [g.Name] }; });
+        }
+        var map = {}, out = [];
+        list.forEach(function (g) {
+            var nm = String(g.Name == null ? '' : g.Name);
+            if (!nm) return;
+            var disp = GENRE_IT[nm.toLowerCase().trim()] || nm;
+            var key = disp.toLowerCase();
+            var e = map[key];
+            if (!e) { e = map[key] = { Id: g.Id, Name: disp, names: [] }; out.push(e); }
+            e.names.push(nm);
+            if (nm.toLowerCase() === key) e.Id = g.Id;      // il genere gia' in italiano da' l'indirizzo della lista nativa
+        });
+        out.forEach(function (e) {   // prima il nome italiano, poi gli altri
+            var k = e.Name.toLowerCase();
+            e.names.sort(function (a, b) { return (a.toLowerCase() === k ? 0 : 1) - (b.toLowerCase() === k ? 0 : 1); });
+        });
+        out.sort(function (a, b) { return a.Name.localeCompare(b.Name, 'it'); });
+        return out;
+    }
+
+    function shuffle(a) {
+        for (var i = a.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var x = a[i]; a[i] = a[j]; a[j] = x;
+        }
+        return a;
+    }
 
     var PAGE_ID = 'owlfin-gp';
     var AUTO_MS = 6500;       // ogni quanto avanza da solo il carosello
@@ -208,7 +253,7 @@
             jf('Genres?userId=' + encodeURIComponent(userId()) + '&Recursive=true&SortBy=SortName&SortOrder=Ascending&IncludeItemTypes=' + typeParam())
                 .then(function (j) {
                     if (my !== seq) return;
-                    var genres = (j && j.Items) || [];
+                    var genres = groupGenres((j && j.Items) || []);
                     if (!genres.length) { empty(); return; }
                     host.innerHTML = '';
                     genres.forEach(function (g) { addBlock(g, my); });
@@ -265,22 +310,34 @@
             }
         }
 
+        function itemsPath(name) {
+            return 'Users/' + encodeURIComponent(userId()) + '/Items?Recursive=true&IncludeItemTypes=' + typeParam() +
+                '&Genres=' + encodeURIComponent(name) + '&SortBy=Random' +
+                '&Fields=Overview&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop&EnableUserData=false&EnableTotalRecordCount=false';
+        }
+
+        // un genere puo' esistere con piu' nomi (italiano e inglese): una richiesta per nome, poi si uniscono senza doppioni
         function loadBlock(b) {
             b.loading = true;
-            var path = 'Users/' + encodeURIComponent(userId()) + '/Items?Recursive=true&IncludeItemTypes=' + typeParam() +
-                '&Genres=' + encodeURIComponent(b.genre.Name) + '&SortBy=Random' +
-                '&Fields=Overview&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop&EnableUserData=false&EnableTotalRecordCount=false';
-            jf(path).then(function (res) {
+            var names = b.genre.names || [b.genre.Name];
+            var results = new Array(names.length), left = names.length, okAny = false;
+            names.forEach(function (nm, i) {
+                jf(itemsPath(nm)).then(function (res) { results[i] = (res && res.Items) || []; okAny = true; }, function () { results[i] = null; })
+                    .then(function () { if (--left === 0) done(); });
+            });
+            function done() {
                 b.loading = false; b.loaded = true; active--;
                 if (b.my !== seq) { pump(); return; }
-                b.items = ((res && res.Items) || []).filter(function (it) { return (it.ImageTags && it.ImageTags.Primary) || (it.BackdropImageTags && it.BackdropImageTags.length); });
+                if (!okAny) { removeBlock(b); pump(); return; }
+                var seen = {}, all = [];
+                results.forEach(function (r) {
+                    (r || []).forEach(function (it) { if (it && it.Id && !seen[it.Id]) { seen[it.Id] = 1; all.push(it); } });
+                });
+                if (names.length > 1) shuffle(all);
+                b.items = all.filter(function (it) { return (it.ImageTags && it.ImageTags.Primary) || (it.BackdropImageTags && it.BackdropImageTags.length); });
                 if (b.items.length < 2) { removeBlock(b); } else renderBlock(b);
                 pump();
-            }, function () {
-                b.loading = false; b.loaded = true; active--;
-                if (b.my === seq) removeBlock(b);
-                pump();
-            });
+            }
         }
 
         function removeBlock(b) {

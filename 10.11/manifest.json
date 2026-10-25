@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.16.0.0",
+                "changelog": "1.16.0.0: Sfoglia Generi solo in italiano: i generi inglesi (es. Action) vengono uniti a quelli italiani (Azione) senza doppioni; resta l'opzione Generi in fondo alla Home\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.16.0.0.zip",
+                "checksum": "6e58c7193eed519c46ca0153e09706d5",
+                "timestamp": "2026-10-25T11:16:11Z"
+            },
+            {
                 "version": "1.15.0.0",
                 "changelog": "1.15.0.0: Sfoglia Generi anche in fondo alla Home: nuova impostazione 'Generi in fondo alla Home' (richiede riavvio di Jellyfin); la sezione e' sempre l'ultimo elemento della Home\n",
                 "targetAbi": "10.11.0.0",
