@@ -6,7 +6,7 @@
  * segue il titolo in primo piano. Toggle via Configuration.GenresEnabled.
  * Con Configuration.GenresOnHome le stesse sezioni compaiono anche in fondo alla home.
  *
- * @version 2.3.0
+ * @version 2.4.0
  * @license GPL-3.0
  */
 (function () {
@@ -626,26 +626,100 @@
         return h === '' || h === '#' || h.indexOf('#/home') === 0 || h.indexOf('#!/home') === 0;
     }
 
-    // la home visibile: le vecchie restano nel DOM, nascoste
+    // la home visibile: le vecchie restano nel DOM, nascoste. Se ce n'e' piu' d'una visibile
+    // (altri plugin aggiungono un proprio contenitore) vale quella piu' in basso sullo schermo.
     function visibleHome() {
-        var all = document.querySelectorAll('.homeSectionsContainer');
-        for (var i = all.length - 1; i >= 0; i--) {
+        var all = document.querySelectorAll('.homeSectionsContainer'), best = null, bestB = -Infinity;
+        for (var i = 0; i < all.length; i++) {
             var c = all[i];
-            if (c.closest('.hide, [hidden]')) continue;
-            if (c.getClientRects().length > 0) return c;
+            if (c.closest('.hide, [hidden]') || c.getClientRects().length === 0) continue;
+            if (!c.querySelector('.verticalSection')) continue;
+            var bt = c.getBoundingClientRect().bottom;
+            if (bt >= bestB - 2) { best = c; bestB = bt; }
         }
-        return null;
+        return best;
     }
 
-    var homeMoves = 0, homeMovesFor = null;
+    function scopeOf(home) { return home.closest('.page, [data-role="page"]') || home.parentNode || document.body; }
+
+    // la sezione sta sotto tutte le righe della home? (conta la posizione sullo schermo, non l'ordine nell'HTML:
+    // temi e plugin possono riordinare le righe con CSS, es. "order" o "column-reverse")
+    function belowAll(sec, scope) {
+        var r = sec.getBoundingClientRect();
+        if (r.height < 1) return true;
+        var all = scope.querySelectorAll('.verticalSection');
+        for (var i = 0; i < all.length; i++) {
+            var s = all[i];
+            if (sec.contains(s)) continue;
+            var b = s.getBoundingClientRect();
+            if (b.height < 1 || b.top <= r.top + 1) continue;
+            var pos = '';
+            try { pos = getComputedStyle(s).position; } catch (e) { /* ignore */ }
+            if (pos === 'fixed' || pos === 'absolute') continue;
+            return false;
+        }
+        return true;
+    }
+
+    // freno: se un altro script riporta in fondo la sua riga ogni volta, non si gioca al ping-pong
+    var moveLog = [];
+    function canMove() {
+        var now = Date.now();
+        moveLog = moveLog.filter(function (x) { return now - x < 10000; });
+        return moveLog.length < 12;
+    }
+
+    // porta la sezione in fondo, passo dopo passo:
+    // 1) ultimo figlio del contenitore; 2) "order" massimo (temi flex/grid); 3) fuori dal contenitore, subito dopo
+    function placeHome(sec, home) {
+        var scope = scopeOf(home);
+        for (var step = 0; step < 4; step++) {
+            var mode = sec.__ogMode || 'in';
+            var okDom = mode === 'out'
+                ? (sec.parentNode === home.parentNode && sec.previousElementSibling === home)
+                : (sec.parentNode === home && home.lastElementChild === sec);
+            if (!okDom) {
+                if (!canMove()) return;
+                moveLog.push(Date.now());
+                if (mode === 'out') home.parentNode.insertBefore(sec, home.nextSibling); else home.appendChild(sec);
+            }
+            if (belowAll(sec, scope)) return;
+            if (!canMove()) return;
+            if (mode === 'in') {
+                moveLog.push(Date.now());
+                sec.style.order = '2147483647'; sec.__ogMode = 'in-order';
+            } else if (mode === 'in-order' && home.parentNode) {
+                moveLog.push(Date.now());
+                sec.style.order = ''; sec.__ogMode = 'out';
+                home.parentNode.insertBefore(sec, home.nextSibling);
+            } else return;
+        }
+    }
+
+    // reagisce subito quando qualcuno aggiunge righe accanto alla nostra sezione
+    var homeWatch = { home: null, mo: null, tm: 0 };
+    function watchHome(home) {
+        if (homeWatch.home === home || typeof MutationObserver === 'undefined') return;
+        try {
+            if (homeWatch.mo) homeWatch.mo.disconnect();
+            homeWatch.home = home;
+            homeWatch.mo = new MutationObserver(function () { clearTimeout(homeWatch.tm); homeWatch.tm = setTimeout(mountHome, 200); });
+            homeWatch.mo.observe(home, { childList: true });
+            if (home.parentNode) homeWatch.mo.observe(home.parentNode, { childList: true });
+        } catch (e) { /* resta il ciclo a tempo */ }
+    }
+
     function mountHome() {
         if (!HOME || !onHomeRoute()) return;
         var home = visibleHome();
-        if (!home || home.__ogOff || !home.querySelector('.verticalSection')) return;
-        var sec = home.querySelector('.og-home');
+        if (!home || home.__ogOff) return;
+        var scope = scopeOf(home);
+        var sec = document.getElementById('owlfin-gh');
+        // le sezioni rimaste in altre home (nascoste) si buttano via
+        Array.prototype.forEach.call(document.querySelectorAll('.og-home'), function (o) {
+            if (o !== sec || !scope.contains(o)) { if (o.parentNode) o.parentNode.removeChild(o); if (o === sec) sec = null; }
+        });
         if (!sec) {
-            // le sezioni rimaste in altre home (nascoste) si buttano via
-            Array.prototype.forEach.call(document.querySelectorAll('.og-home'), function (o) { if (o.parentNode) o.parentNode.removeChild(o); });
             injectCSS();
             sec = document.createElement('section');
             sec.id = 'owlfin-gh';
@@ -659,13 +733,10 @@
             hv.onEmpty = function () { home.__ogOff = true; if (sec.parentNode) sec.parentNode.removeChild(sec); };
             sec.addEventListener('click', hv.click);
             hv.load();
-            return;
         }
-        // deve restare l'ultimo elemento della home (altre righe arrivano a pezzi)
-        if (home.lastElementChild !== sec) {
-            if (homeMovesFor !== home) { homeMovesFor = home; homeMoves = 0; }
-            if (homeMoves < 40) { homeMoves++; home.appendChild(sec); }
-        }
+        // deve restare sotto tutte le righe (altre arrivano a pezzi o vengono riordinate)
+        placeHome(sec, home);
+        watchHome(home);
     }
 
     if (HOME) {

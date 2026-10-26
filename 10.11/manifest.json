@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.17.0.0",
+                "changelog": "1.17.0.0: Sezione Generi in Home sempre in fondo: controllo della posizione reale sullo schermo, con ordine CSS massimo o spostamento fuori dal contenitore quando temi/plugin riordinano le righe\n",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/whoissava/owlfin/main/10.11/owlfin/owlfin_1.17.0.0.zip",
+                "checksum": "d80e549d9e42bf62630e9abc806c6649",
+                "timestamp": "2026-10-26T11:19:02Z"
+            },
+            {
                 "version": "1.16.0.0",
                 "changelog": "1.16.0.0: Sfoglia Generi solo in italiano: i generi inglesi (es. Action) vengono uniti a quelli italiani (Azione) senza doppioni; resta l'opzione Generi in fondo alla Home\n",
                 "targetAbi": "10.11.0.0",
